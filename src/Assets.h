@@ -19,8 +19,10 @@ using ChunkPtr = std::unique_ptr<Mix_Chunk, MixChunkDeleter>;
 // Sprite / font / sfx cache.
 //
 // Sprites: looks for assets/sprites/<name>.png. If missing, generates a
-// labeled colored rectangle (color hashed from the name, first letter of the
-// last word as a glyph) so the game is playable before any art exists.
+// psychedelic placeholder so the game is playable before any art exists:
+// player_* = pixel alien, ufo_* = saucer, tile_* = grayscale sacred
+// geometry (tinted at draw time), npc_* = radial three-eyed being, anything
+// else = a glowing hexagram gem.
 class Assets {
 public:
     // Locates the assets/ directory (cwd, parent, or next to the executable).

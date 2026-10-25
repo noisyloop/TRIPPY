@@ -11,7 +11,27 @@ deterministic looping track per "mood", and rooms crossfade between moods as
 you walk. Missing sprites are generated at runtime as labeled colored squares,
 so the game is fully playable before a single asset exists.
 
-## Quick start
+## Install (no build needed)
+
+Every push to `main` is built on GitHub Actions and published as a new
+release (`v0.<build number>`); pushing a `v*` tag releases under that name.
+Grab the latest from the repo's **Releases** page:
+
+- **macOS** (Apple Silicon + Intel): `TRIPPY-macos.dmg` → drag TRIPPY into
+  Applications. It isn't signed by Apple, so the first launch is blocked:
+  right-click TRIPPY → **Open** → **Open**, or run once in Terminal:
+  `xattr -dr com.apple.quarantine /Applications/TRIPPY.app`
+- **Windows**: `TRIPPY-windows.zip` → unzip the whole folder, run
+  `trippy.exe`. On "Windows protected your PC" click **More info** →
+  **Run anyway**.
+
+Builds from other branches and PRs are attached to their Actions run as
+artifacts. Packaging lives in `.github/workflows/build.yml` and
+`packaging/` — SDL2 and its satellite libs are downloaded by CMake
+(`-DTRIPPY_VENDOR_SDL=ON`) and linked statically; nothing is code-signed
+(the .app gets an ad-hoc signature so Apple Silicon will run it).
+
+## Quick start (build from source)
 
 ```sh
 cmake -B build && cmake --build build && ./build/trippy
@@ -93,6 +113,7 @@ src/
   Entity.{h,cpp}      Base for NPCs / items / triggers
   NPC.{h,cpp}         NPC entity (dialogue looked up by id)
   UFO.{h,cpp}         Drifting saucer NPC (ids starting with ufo_)
+  TripFX.{h,cpp}      Offscreen playfield, sine warp strips, kaleidoscope, HSV helpers
   Dialogue.{h,cpp}    Dialogue trees (in code) + typewriter dialogue box
   Inventory.{h,cpp}   Item list + display names + overlay
   SaveGame.{h,cpp}    JSON save/load (hand-rolled, zero deps)
@@ -127,6 +148,9 @@ assets/
    items = 0:room_key
    # optional: set a story flag the moment the player walks in
    on_enter_flag = reached_myroom
+   # optional psychedelia, 0..1 (default trip 0.3, kaleidoscope 0)
+   trip = 0.6           # hue cycling + screen warp + afterimage trails
+   kaleidoscope = 0.6   # 12-wedge mirror around the player
    ```
 
    Any npc id starting with `ufo_` becomes a drifting saucer: it floats in
@@ -192,9 +216,13 @@ placeholder, so you can replace art one file at a time:
 | `npc_hallkeeper.png`, `npc_tessellator.png`, `npc_mirror_you.png` | strange-room NPCs |
 | `apology_note.png` | the starter item (also its inventory icon) |
 
-Missing player frames are generated as a pixel alien and `ufo_*` as a
-pixel saucer (other placeholders stay labeled squares). The previous human
-hero art lives in `assets/sprites/legacy/` and is not loaded.
+Missing art is generated: player frames → pixel alien, `ufo_*` → pixel
+saucer, `tile_*` → grayscale sacred geometry (seed-of-life floor, hexagram
+walls, spiral grass, vesica-eye doors), `npc_*` → a radial three-eyed
+being, items → a hexagram gem. Tiles are tinted with a hue-cycled color
+every frame, so real tile PNGs get partially tinted too (by the room's
+`trip`). The older SORRY art lives in `assets/sprites/legacy/` and is not
+loaded (move a file back up to use it).
 
 Any new NPC/item id you invent in a `.meta` file automatically looks for
 `assets/sprites/<id>.png` the same way.

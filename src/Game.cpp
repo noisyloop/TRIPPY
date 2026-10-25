@@ -28,13 +28,22 @@ MoodPalette paletteFor(const std::string& mood) {
 
 constexpr int kTile = Room::kTile;
 
+// Saturated, hue-cycled version of a palette color. The hue drifts with time
+// and ripples across the grid; `trip` scales how far it wanders.
+SDL_Color trippyTint(SDL_Color base, double val, double trip, double t, int tx, int ty) {
+    double shift = trip * (t * 35.0 + (tx + ty) * 9.0 + std::sin(tx * 0.6 + t * 1.3) * 50.0
+                           + std::cos(ty * 0.5 - t * 0.9) * 40.0);
+    return hsvColor(hueOf(base) + shift, 0.45 + 0.45 * trip, val);
+}
+
 }  // namespace
 
 Game::Game()
     : renderer_(),
       assets_(renderer_),
       audio_(assets_),
-      roomLoader_(assets_.rootDir()) {
+      roomLoader_(assets_.rootDir()),
+      tripFx_(renderer_) {
     if (auto data = saveGame_.read()) {
         std::cout << "[save] resuming from " << saveGame_.path() << "\n";
         inventory_.setItems(data->inventory);
@@ -63,6 +72,7 @@ void Game::enterRoom(const std::string& name, const Direction* fromDir, bool aut
         return;
     }
     room_ = std::move(next);
+    trail_.clear();
 
     // Collected items don't respawn.
     for (const auto& id : inventory_.items())
@@ -134,6 +144,22 @@ void Game::run() {
 void Game::update(double dt) {
     if (input_.escapePressed())
         running_ = false;
+
+    const double ease = std::min(1.0, dt * 1.5);
+    trip_ += (room_->trip() - trip_) * ease;
+    kaleido_ += (room_->kaleidoscope() - kaleido_) * ease;
+
+    // Afterimages: sample the player every 40ms while moving, decay when still.
+    trailClock_ += dt;
+    if (trailClock_ >= 0.04) {
+        trailClock_ = 0;
+        const size_t maxGhosts = static_cast<size_t>(2 + trip_ * 10);
+        if (player_.moving())
+            trail_.push_front({player_.x(), player_.y(), player_.spriteName()});
+        else if (!trail_.empty())
+            trail_.pop_back();
+        while (trail_.size() > maxGhosts) trail_.pop_back();
+    }
 
     switch (state_) {
     case State::Title:
@@ -243,7 +269,8 @@ void Game::render() {
     }
 
     const MoodPalette pal = paletteFor(room_->mood());
-    renderer_.clear(pal.background);
+    const SDL_Color bg = hsvColor(hueOf(pal.background) + worldTime_ * 20.0 * trip_, 0.6, 0.12);
+    renderer_.clear(bg);
 
     // Camera centered on the player, clamped to the room.
     int camX = static_cast<int>(player_.x()) + kTile / 2 - Renderer::kWindowW / 2;
@@ -256,7 +283,11 @@ void Game::render() {
         camY = (room_->pixelHeight() - Renderer::kViewH) / 2;
     renderer_.setCamera(camX, camY);
 
+    tripFx_.begin(bg);
     renderWorld();
+    tripFx_.end(worldTime_, trip_, kaleido_,
+                static_cast<int>(player_.x()) + kTile / 2 - camX,
+                static_cast<int>(player_.y()) + kTile / 2 - camY, bg);
 
     if (state_ == State::InventoryOpen)
         inventory_.render(renderer_, assets_);
@@ -281,6 +312,8 @@ void Game::renderTitle() {
     const int cx = Renderer::kWindowW / 2;
     renderer_.drawTextCentered(assets_, "TRIPPY", cx + 5, 215, SDL_Color{40, 12, 24, 255}, 5);
     renderer_.drawTextCentered(assets_, "TRIPPY", cx, 210, dim(SDL_Color{120, 255, 150, 255}), 5);
+    renderer_.drawTextCentered(assets_, TRIPPY_VERSION, Renderer::kWindowW - 40,
+                               Renderer::kWindowH - 20, SDL_Color{90, 70, 120, 255});
     renderer_.drawTextCentered(assets_, "you are the visitor. everything else is visiting you.",
                                cx, 290, SDL_Color{140, 120, 170, 255});
 
@@ -301,41 +334,48 @@ void Game::renderTitle() {
 void Game::renderWorld() {
     const MoodPalette pal = paletteFor(room_->mood());
 
-    // Tiles: real PNG if provided (tile_wall.png etc.), colored rects otherwise.
+    // Tiles: real PNG if provided (tile_wall.png etc.), else generated
+    // sacred geometry. Both get a hue-cycled tint; real art only partially,
+    // so it stays readable.
     for (int ty = 0; ty < room_->height(); ++ty) {
         for (int tx = 0; tx < room_->width(); ++tx) {
             Tile t = room_->tileAt(tx, ty);
-            const char* spriteName = nullptr;
-            SDL_Color c = pal.floor;
+            const char* spriteName = "tile_floor";
+            SDL_Color base = pal.floor;
+            double val = 0.85;
             switch (t) {
-            case Tile::Wall:  spriteName = "tile_wall";  c = pal.wall; break;
-            case Tile::Floor: spriteName = "tile_floor"; c = pal.floor; break;
-            case Tile::Grass: spriteName = "tile_grass"; c = pal.grass; break;
-            case Tile::Door:  spriteName = "tile_door";  c = pal.door; break;
+            case Tile::Wall:  spriteName = "tile_wall";  base = pal.wall;  val = 0.7; break;
+            case Tile::Floor: spriteName = "tile_floor"; base = pal.floor; val = 0.85; break;
+            case Tile::Grass: spriteName = "tile_grass"; base = pal.grass; val = 0.9; break;
+            case Tile::Door:  spriteName = "tile_door";  base = pal.door;  val = 1.0; break;
             }
-            if (!assets_.spriteIsPlaceholder(spriteName)) {
-                renderer_.drawSprite(assets_.sprite(spriteName), tx * kTile, ty * kTile,
-                                     kTile, kTile);
-            } else {
-                renderer_.fillRectWorld(tx * kTile, ty * kTile, kTile, kTile, c);
-                if (t == Tile::Grass) {
-                    // Swaying blades: three thin bars with a phase per column.
-                    double sway = std::sin(worldTime_ * 2.0 + tx * 1.7 + ty * 0.9) * 2.0;
-                    SDL_Color blade{static_cast<Uint8>(std::min(255, pal.grass.r + 30)),
-                                    static_cast<Uint8>(std::min(255, pal.grass.g + 40)),
-                                    static_cast<Uint8>(std::min(255, pal.grass.b + 30)), 255};
-                    for (int b = 0; b < 3; ++b)
-                        renderer_.fillRectWorld(tx * kTile + 6 + b * 9 + static_cast<int>(sway),
-                                                ty * kTile + 8, 3, 18, blade);
-                } else if (t == Tile::Door) {
-                    double pulse = (std::sin(worldTime_ * 3.0) + 1.0) * 0.5;
-                    SDL_Color glow{c.r, c.g, c.b, static_cast<Uint8>(90 + pulse * 100)};
-                    renderer_.fillRectWorld(tx * kTile + 6, ty * kTile + 6,
-                                            kTile - 12, kTile - 12, glow);
-                }
+            SDL_Color tint = trippyTint(base, val, trip_, worldTime_, tx, ty);
+            const bool real = !assets_.spriteIsPlaceholder(spriteName);
+            if (real)
+                tint = lerpColor(SDL_Color{255, 255, 255, 255}, tint, trip_);
+            SDL_Texture* tex = assets_.sprite(spriteName);
+            SDL_SetTextureColorMod(tex, tint.r, tint.g, tint.b);
+            renderer_.drawSprite(tex, tx * kTile, ty * kTile, kTile, kTile);
+
+            if (!real && t == Tile::Grass) {
+                // Swaying blades in the complementary hue.
+                double sway = std::sin(worldTime_ * 2.0 + tx * 1.7 + ty * 0.9) * 2.0;
+                SDL_Color blade = hueRotate(tint, 180);
+                blade.a = 160;
+                for (int b = 0; b < 3; ++b)
+                    renderer_.fillRectWorld(tx * kTile + 6 + b * 9 + static_cast<int>(sway),
+                                            ty * kTile + 8, 3, 18, blade);
+            } else if (!real && t == Tile::Door) {
+                double pulse = (std::sin(worldTime_ * 3.0) + 1.0) * 0.5;
+                SDL_Color glow = hueRotate(tint, 120);
+                glow.a = static_cast<Uint8>(60 + pulse * 90);
+                renderer_.fillRectWorld(tx * kTile + 4, ty * kTile + 4,
+                                        kTile - 8, kTile - 8, glow);
             }
         }
     }
+    for (const char* n : {"tile_floor", "tile_wall", "tile_grass", "tile_door"})
+        SDL_SetTextureColorMod(assets_.sprite(n), 255, 255, 255);
 
     // Entities.
     for (const auto& e : room_->entities()) {
@@ -353,6 +393,18 @@ void Game::renderWorld() {
             renderer_.drawSprite(assets_.sprite(e->sprite()), px + 4,
                                  py + 4 + static_cast<int>(hover), kTile - 8, kTile - 8);
         }
+    }
+
+    // Afterimages: older ghosts fade out and slide around the color wheel.
+    for (size_t i = trail_.size(); i-- > 0;) {
+        const Ghost& g = trail_[i];
+        SDL_Texture* tex = assets_.sprite(g.frame);
+        SDL_Color c = hsvColor(worldTime_ * 90.0 + i * 40.0, 0.8, 1.0);
+        SDL_SetTextureColorMod(tex, c.r, c.g, c.b);
+        SDL_SetTextureAlphaMod(tex, static_cast<Uint8>(150.0 * (1.0 - (i + 1.0) / (trail_.size() + 1.0))));
+        renderer_.drawSprite(tex, static_cast<int>(g.x), static_cast<int>(g.y), kTile, kTile);
+        SDL_SetTextureColorMod(tex, 255, 255, 255);
+        SDL_SetTextureAlphaMod(tex, 255);
     }
 
     // Player: directional frames if real art exists, bobbing fallback if not.

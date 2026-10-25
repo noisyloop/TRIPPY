@@ -5,3 +5,5 @@ transitions = north:bedroom south:saucer_meadow
 npcs = 0:npc_tessellator 1:npc_mirror_you
 items = 0:third_eye_marble
 on_enter_flag = entered_temple
+trip = 0.8
+kaleidoscope = 0.6

@@ -2,3 +2,4 @@
 music_mood = calm_pentatonic
 transitions = east:hallway
 npcs = 0:npc_mother
+trip = 0.15

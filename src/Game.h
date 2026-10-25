@@ -14,6 +14,9 @@
 #include "Room.h"
 #include "RoomLoader.h"
 #include "SaveGame.h"
+#include "TripFX.h"
+
+#include <deque>
 
 // Top-level game: owns every subsystem, runs the loop, switches rooms.
 class Game {
@@ -49,6 +52,8 @@ private:
     RoomLoader roomLoader_;
     SaveGame saveGame_;
 
+    TripFX tripFx_;
+
     Player player_;
     Inventory inventory_;
     DialogueBox dialogue_;
@@ -59,6 +64,13 @@ private:
     bool running_ = true;
     double worldTime_ = 0;   // drives ambient animation
     double titleHold_ = 0;   // seconds any key has been held on the title screen
+
+    // Effect levels ease toward the current room's .meta values.
+    double trip_ = 0;
+    double kaleido_ = 0;
+    struct Ghost { double x, y; std::string frame; };
+    std::deque<Ghost> trail_;  // player afterimages, newest first
+    double trailClock_ = 0;
 
     static constexpr double kTitleHoldSeconds = 0.8;
 };
