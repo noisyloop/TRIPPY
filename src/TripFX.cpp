@@ -147,8 +147,10 @@ void TripFX::end(double time, double warp, double kaleido, int focusX, int focus
     for (int y = 0; y < kH; y += kStrip) {
         double off = amp * (std::sin(y * 0.031 + time * 2.3) * 0.7
                             + std::sin(y * 0.087 - time * 1.1) * 0.3);
-        SDL_Rect s{0, y, kW, kStrip};
-        SDL_Rect d{static_cast<int>(std::lround(off)), y, kW, kStrip};
+        // Strips overlap by a pixel so non-integer window scales never
+        // leave hairline gaps between them.
+        SDL_Rect s{0, y, kW, std::min(kStrip + 1, kH - y)};
+        SDL_Rect d{static_cast<int>(std::lround(off)), y, kW, s.h};
         SDL_RenderCopy(r, src, &s, &d);
     }
 }

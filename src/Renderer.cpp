@@ -1,16 +1,23 @@
 #include "Renderer.h"
 #include "Assets.h"
 
+#include <SDL_image.h>
+
+#include <iostream>
+
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
-Renderer::Renderer() {
+Renderer::Renderer(int windowW, int windowH) {
     // Open big: 85% of the usable desktop (any aspect; the logical width
     // follows it). Falls back to 800x600 if the display can't be queried.
     int winW = kWindowW, winH = kWindowH;
     SDL_Rect usable;
-    if (SDL_GetDisplayUsableBounds(0, &usable) == 0 && usable.w > 0 && usable.h > 0) {
+    if (windowW > 0 && windowH > 0) {
+        winW = windowW;
+        winH = windowH;
+    } else if (SDL_GetDisplayUsableBounds(0, &usable) == 0 && usable.w > 0 && usable.h > 0) {
         winW = std::max(kWindowW, usable.w * 85 / 100);
         winH = std::max(kWindowH, usable.h * 85 / 100);
     }
@@ -57,6 +64,19 @@ void Renderer::clear(SDL_Color c) {
 }
 
 void Renderer::present() {
+    if (!capturePath_.empty()) {
+        int w = 0, h = 0;
+        SDL_GetRendererOutputSize(renderer_.get(), &w, &h);
+        SurfacePtr shot(SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32));
+        captureFailed_ = !shot
+            || SDL_RenderReadPixels(renderer_.get(), nullptr, SDL_PIXELFORMAT_RGBA32, shot->pixels, shot->pitch) != 0
+            || IMG_SavePNG(shot.get(), capturePath_.c_str()) != 0;
+        if (captureFailed_)
+            std::cerr << "[renderer] screenshot failed: " << SDL_GetError() << "\n";
+        else
+            std::cout << "[renderer] wrote " << capturePath_ << " (" << w << "x" << h << ")\n";
+        capturePath_.clear();
+    }
     SDL_RenderPresent(renderer_.get());
 }
 

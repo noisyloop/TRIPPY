@@ -29,7 +29,8 @@ public:
     static constexpr int kStatusBarH = 40;
     static constexpr int kViewH = kWindowH - kStatusBarH;  // playfield height
 
-    Renderer();  // throws std::runtime_error on failure
+    // width/height 0 = 85% of the desktop. Throws std::runtime_error on failure.
+    Renderer(int windowW = 0, int windowH = 0);
 
     SDL_Renderer* sdl() const { return renderer_.get(); }
 
@@ -37,6 +38,9 @@ public:
     void handleWindowEvent(const SDL_Event& e);  // resize -> new logical width
     void toggleFullscreen();
     void setIcon(SDL_Surface* icon) { SDL_SetWindowIcon(window_.get(), icon); }
+    // The next present() first saves the frame as a PNG (dev screenshots).
+    void requestCapture(std::string path) { capturePath_ = std::move(path); }
+    bool captureFailed() const { return captureFailed_; }
 
     void clear(SDL_Color c);
     void present();
@@ -65,6 +69,8 @@ private:
     int camX_ = 0;
     int camY_ = 0;
     int width_ = kWindowW;
+    std::string capturePath_;
+    bool captureFailed_ = false;
 
     void updateLogicalSize();
 };

@@ -31,10 +31,13 @@ struct SdlRuntime {
 }  // namespace
 
 // SDL wants this exact signature (SDL2main supplies WinMain on Windows).
-int main(int, char*[]) {
+int main(int argc, char* argv[]) {
+    DevOptions dev;
+    if (!dev.parse(argc, argv))
+        return 2;
     try {
         SdlRuntime sdl;
-        Game game;
+        Game game(std::move(dev));
         game.run();
     } catch (const std::exception& e) {
         std::cerr << "FATAL: " << e.what() << "\n";

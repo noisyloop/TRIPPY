@@ -104,6 +104,20 @@ hook hands you a byte length, and the synth currently interprets it as
 `int16` mono frames. Mismatching these plays garbage or half-speed audio
 rather than erroring.
 
+## Developer shortcuts
+
+```sh
+# jump anywhere, with any items/flags (never reads or writes your save)
+./build/trippy --room observation_deck --pos 7,6 --give third_eye_marble --skip-title
+./build/trippy --room waiting_room --flag beat_boss_choir --skip-title
+# headless screenshot of a room (no display needed)
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./build/trippy --room cow_lounge --screenshot cow.png --size 1280x720
+./build/trippy --help
+```
+
+Press **F5** in game to reload dialogue, duels and the current room from
+disk (keeps your position). Content formats: `docs/content-format.md`.
+
 ## Controls
 
 | Key | Action |
@@ -114,6 +128,7 @@ rather than erroring.
 | I | Open / close inventory |
 | F / F11 / ⌘F / Alt+Enter | Toggle fullscreen (the window is also resizable) |
 | C | Calm mode: no flashing, warp or kaleidoscope, gentle colors (saved) |
+| F5 | Reload dialogue, duels and the current room from disk |
 | Gamepad | d-pad/left stick move, A/B interact, X/Y inventory, Back calm, Start fullscreen |
 | Esc | Quit (autosaves) |
 
@@ -192,14 +207,14 @@ assets/
    matching door tile `>` on that edge. Arriving players spawn one tile
    inward from the door that faces back the way they came.
 
-4. New NPC? Register a `DialogueTree` under its id in `dialogueRegistry()`
-   (`src/Dialogue.cpp`). New item? Add a display name in
+4. New NPC? Add `assets/dialogue/<id>.txt` (format in
+   `docs/content-format.md`). New item? Add a display name in
    `Inventory::displayName` (unknown ids fall back to de-underscored text).
 
 No C++ changes are needed for the room itself.
 
-**Bosses**: an npc id starting with `boss_` that has a `DuelScript` in
-`duelRegistry()` (`src/Duel.cpp`) starts a conversation duel: Talk rounds
+**Bosses**: an npc id starting with `boss_` that has
+`assets/duels/<id>.txt` starts a conversation duel: Talk rounds
 (pick a reply), Echo rounds (repeat the arrow pattern) and Beat rounds
 (press arrows on the music's beat) move a resonance meter; at 100 the boss
 is won over (`beat_<id>` flag, reward item, optional `afterRoom`). Nobody
@@ -314,8 +329,6 @@ drop any `.ttf` in `assets/fonts/` (first file found is used, 18pt).
 
 ## Where to extend next
 
-- **Dialogue in files**: `dialogueRegistry()` is the single seam — swap its
-  body for a parser over `assets/dialogue/*.txt` and nothing else changes.
 - **Battle / minigame scenes**: `Game::State` is the scene switch; add a
   state, route `update`/`render` through it.
 - **Entity behaviors**: `Entity::update` is virtual; wandering NPCs or

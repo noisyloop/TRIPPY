@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <optional>
 
 namespace {
 
@@ -40,8 +41,9 @@ SDL_Color trippyTint(SDL_Color base, double val, double trip, double t, int tx, 
 
 }  // namespace
 
-Game::Game()
-    : renderer_(),
+Game::Game(DevOptions dev)
+    : dev_(std::move(dev)),
+      renderer_(dev_.windowW, dev_.windowH),
       assets_(renderer_),
       audio_(assets_),
       roomLoader_(assets_.rootDir()),
@@ -53,7 +55,9 @@ Game::Game()
         if (SurfacePtr icon{IMG_Load((assets_.rootDir() + "/icon.png").c_str())})
             renderer_.setIcon(icon.get());
 
-    if (auto data = saveGame_.read()) {
+    std::optional<SaveData> data;
+    if (!dev_.fresh) data = saveGame_.read();
+    if (data) {
         std::cout << "[save] resuming from " << saveGame_.path() << "\n";
         inventory_.setItems(data->inventory);
         flags_ = data->flags;
@@ -69,9 +73,26 @@ Game::Game()
         throw std::runtime_error("Could not load starting room 'bedroom' "
                                  "(missing assets/maps/bedroom.txt?)");
 
+    // Dev options: jump anywhere with any items/flags.
+    for (const auto& f : dev_.flags) setFlag(f);
+    for (const auto& id : dev_.give) { inventory_.add(id); setFlag("got_" + id); }
+    if (dev_.calm) setFlag("opt_calm");
+    if (!dev_.room.empty()) {
+        enterRoom(dev_.room, nullptr, /*autosave=*/false);
+        if (!room_ || room_->name() != dev_.room)
+            throw std::runtime_error("--room " + dev_.room + ": no such room (assets/maps/"
+                                     + dev_.room + ".txt)");
+    }
+    if (dev_.tileX >= 0) player_.setTilePosition(dev_.tileX, dev_.tileY);
+
     // The title screen gets its own dreamy theme; the room's mood crossfades
     // in once the player holds a key to start.
-    audio_.playMood("dream_lydian");
+    if (dev_.skipTitle) {
+        state_ = State::Exploring;
+        audio_.playMood(room_->mood());
+    } else {
+        audio_.playMood("dream_lydian");
+    }
 }
 
 void Game::enterRoom(const std::string& name, const Direction* fromDir, bool autosave) {
@@ -128,6 +149,7 @@ void Game::enterRoom(const std::string& name, const Direction* fromDir, bool aut
 }
 
 void Game::save() {
+    if (dev_.fresh) return;  // dev sessions never touch the real save
     SaveData data;
     data.room = room_->name();
     data.playerX = player_.x();
@@ -158,6 +180,10 @@ void Game::run() {
             running_ = false;
 
         update(dt);
+        if (!dev_.screenshot.empty() && ++frame_ == dev_.frames) {
+            renderer_.requestCapture(dev_.screenshot);
+            running_ = false;
+        }
         render();
     }
     save();  // be kind on quit too
@@ -178,6 +204,24 @@ void Game::handleGlobalKeys() {
         renderer_.toggleFullscreen();
     if (input_.wasPressed(SDL_SCANCODE_C) && state_ != State::InDialogue)
         toggleCalm();
+    if (input_.wasPressed(SDL_SCANCODE_F5) && state_ == State::Exploring)
+        reloadContent();
+}
+
+void Game::reloadContent() {
+    const int trees = loadDialogue(assets_.rootDir());
+    const int duels = loadDuels(assets_.rootDir());
+    // Rebuild the current room in place: same spot, same music.
+    const double x = player_.x(), y = player_.y();
+    if (auto fresh = roomLoader_.load(room_->name())) {
+        room_ = std::move(fresh);
+        for (const auto& id : inventory_.items())
+            room_->removeEntity(id);
+        player_.setPixelPosition(x, y);
+    }
+    toast("reloaded: " + room_->name() + ", " + std::to_string(trees) + " dialogue, "
+          + std::to_string(duels) + " duels", 2.5);
+    std::cout << "[content] reloaded " << room_->name() << "\n";
 }
 
 void Game::update(double dt) {

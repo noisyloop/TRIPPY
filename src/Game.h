@@ -6,6 +6,7 @@
 
 #include "Assets.h"
 #include "Audio.h"
+#include "DevOptions.h"
 #include "Dialogue.h"
 #include "Duel.h"
 #include "Input.h"
@@ -22,7 +23,8 @@
 // Top-level game: owns every subsystem, runs the loop, switches rooms.
 class Game {
 public:
-    Game();  // throws std::runtime_error if a critical asset is missing
+    // Throws std::runtime_error if a critical asset is missing.
+    explicit Game(DevOptions dev = {});
     void run();
 
 private:
@@ -55,6 +57,10 @@ private:
     bool calm() const { return hasFlag("opt_calm"); }
     void toggleCalm();
     void handleGlobalKeys();
+    void reloadContent();  // F5: dialogue, duels and the current room from disk
+
+    DevOptions dev_;
+    int frame_ = 0;
 
     Renderer renderer_;
     Assets assets_;

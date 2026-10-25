@@ -85,6 +85,7 @@ add_executable(trippy
   src/TripFX.cpp
   src/Duel.cpp
   src/Content.cpp
+  src/DevOptions.cpp
   src/Dialogue.cpp
   src/Inventory.cpp
   src/SaveGame.cpp
