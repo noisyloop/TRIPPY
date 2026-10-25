@@ -69,6 +69,98 @@ char glyphForName(const std::string& name) {
     return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 }
 
+// Paints a 16x16 character grid at 2x into a 32x32 surface. '.' = clear.
+void paintGrid(SDL_Surface* surf, const char* const rows[16],
+               const std::unordered_map<char, SDL_Color>& ink) {
+    for (int y = 0; y < 16; ++y) {
+        for (int x = 0; x < 16; ++x) {
+            auto it = ink.find(rows[y][x]);
+            if (it == ink.end()) continue;
+            SDL_Rect px{x * 2, y * 2, 2, 2};
+            SDL_FillRect(surf, &px, SDL_MapRGBA(surf->format, it->second.r, it->second.g,
+                                                it->second.b, it->second.a));
+        }
+    }
+}
+
+// The hero: a little green alien. "player_<dir>_<frame>"; anything else
+// starting with "player" gets the down-facing idle pose.
+void paintAlien(SDL_Surface* surf, const std::string& name) {
+    const bool up = name.find("_up") != std::string::npos;
+    const bool left = name.find("_left") != std::string::npos;
+    const bool right = name.find("_right") != std::string::npos;
+    const bool step = !name.empty() && name.back() == '1';
+
+    const char* rows[16] = {
+        "...p........p...",
+        "....a......a....",
+        ".....a....a.....",
+        "....gggggggg....",
+        "...gggggggggg...",
+        "..gggggggggggg..",
+        "..gKKKggggKKKg..",
+        "..gKWKggggKWKg..",
+        "...gKKggggKKg...",
+        "....gggggggg....",
+        "......gggg......",
+        "....bbbbbbbb....",
+        "...gbbbybbbbg...",
+        "....bbbbbbbb....",
+        "....gg....gg....",
+        "....gg....gg....",
+    };
+    if (up) {  // back of the head: no face, a stripe of spots instead
+        rows[6] = "..gggggggggggg..";
+        rows[7] = "..gggyggggyggg..";
+        rows[8] = "...gggggggggg...";
+    } else if (left) {
+        rows[6] = "..KKKgggggggg...";
+        rows[7] = "..KWKgggggggg...";
+        rows[8] = "...KKggggggg....";
+    } else if (right) {
+        rows[6] = "...ggggggggKKK..";
+        rows[7] = "...ggggggggKWK..";
+        rows[8] = "....gggggggKK...";
+    }
+    if (step) {
+        rows[14] = "....gg.....gg...";
+        rows[15] = "...gg......gg...";
+    }
+    paintGrid(surf, rows, {
+        {'g', {120, 255, 150, 255}}, {'K', {12, 6, 30, 255}}, {'W', {255, 255, 255, 255}},
+        {'a', {200, 255, 210, 255}}, {'p', {255, 80, 220, 255}}, {'b', {150, 70, 255, 255}},
+        {'y', {255, 240, 90, 255}},
+    });
+}
+
+// Saucer NPCs ("ufo_*"): hull color hashed from the name.
+void paintSaucer(SDL_Surface* surf, SDL_Color hull) {
+    const char* rows[16] = {
+        "................",
+        "................",
+        "................",
+        "......cccc......",
+        ".....cWcccc.....",
+        ".....cccccc.....",
+        "...mmmmmmmmmm...",
+        ".mmmmmmmmmmmmmm.",
+        "mmYmmYmmYmmYmmYm",
+        ".mmmmmmmmmmmmmm.",
+        "...dddddddddd...",
+        "......tttt......",
+        ".....tttttt.....",
+        "....tttttttt....",
+        "...tttttttttt...",
+        "................",
+    };
+    SDL_Color dark{static_cast<Uint8>(hull.r / 2), static_cast<Uint8>(hull.g / 2),
+                   static_cast<Uint8>(hull.b / 2), 255};
+    paintGrid(surf, rows, {
+        {'m', hull}, {'d', dark}, {'c', {140, 255, 255, 220}}, {'W', {255, 255, 255, 255}},
+        {'Y', {255, 250, 120, 255}}, {'t', {200, 255, 120, 70}},
+    });
+}
+
 }  // namespace
 
 Assets::Assets(Renderer& renderer) : renderer_(renderer), root_(findAssetRoot()) {
@@ -112,6 +204,14 @@ SDL_Texture* Assets::makePlaceholder(const std::string& name) {
     constexpr int kSize = 32;
     SurfacePtr surf(SDL_CreateRGBSurfaceWithFormat(0, kSize, kSize, 32, SDL_PIXELFORMAT_RGBA32));
     SDL_Color body = colorForName(name);
+
+    // Pixel-art placeholders for the cast that needs to read as a shape.
+    if (name.rfind("player", 0) == 0 || name.rfind("ufo_", 0) == 0) {
+        SDL_FillRect(surf.get(), nullptr, SDL_MapRGBA(surf->format, 0, 0, 0, 0));
+        if (name[0] == 'p') paintAlien(surf.get(), name);
+        else paintSaucer(surf.get(), body);
+        return SDL_CreateTextureFromSurface(renderer_.sdl(), surf.get());
+    }
     SDL_FillRect(surf.get(), nullptr,
                  SDL_MapRGBA(surf->format, body.r, body.g, body.b, 255));
     SDL_Rect border{0, 0, kSize, kSize};

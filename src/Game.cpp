@@ -279,9 +279,9 @@ void Game::renderTitle() {
     };
 
     const int cx = Renderer::kWindowW / 2;
-    renderer_.drawTextCentered(assets_, "SORRY", cx + 5, 215, SDL_Color{40, 12, 24, 255}, 5);
-    renderer_.drawTextCentered(assets_, "SORRY", cx, 210, dim(SDL_Color{214, 62, 106, 255}), 5);
-    renderer_.drawTextCentered(assets_, "the desert keeps what you don't say",
+    renderer_.drawTextCentered(assets_, "TRIPPY", cx + 5, 215, SDL_Color{40, 12, 24, 255}, 5);
+    renderer_.drawTextCentered(assets_, "TRIPPY", cx, 210, dim(SDL_Color{120, 255, 150, 255}), 5);
+    renderer_.drawTextCentered(assets_, "you are the visitor. everything else is visiting you.",
                                cx, 290, SDL_Color{140, 120, 170, 255});
 
     // Hold-to-start prompt with a fill bar; brightens while a key is held.
@@ -339,8 +339,10 @@ void Game::renderWorld() {
 
     // Entities.
     for (const auto& e : room_->entities()) {
-        int px = e->tileX() * kTile;
-        int py = e->tileY() * kTile;
+        double ox, oy;
+        e->drawOffset(ox, oy);
+        int px = e->tileX() * kTile + static_cast<int>(ox);
+        int py = e->tileY() * kTile + static_cast<int>(oy);
         if (e->kind() == EntityKind::Npc) {
             double bob = std::sin(worldTime_ * 2.2 + e->tileX()) * 2.0;
             renderer_.drawSprite(assets_.sprite(e->sprite()), px,
@@ -359,6 +361,10 @@ void Game::renderWorld() {
     int py = static_cast<int>(player_.y());
     if (!assets_.spriteIsPlaceholder(frame)) {
         renderer_.drawSprite(assets_.sprite(frame), px, py, kTile, kTile);
+    } else if (assets_.spriteIsPlaceholder("player")) {
+        // Generated alien frames are directional already; just add a hop.
+        double bob = player_.moving() ? std::sin(player_.animTime() * 18.0) * 2.0 : 0.0;
+        renderer_.drawSprite(assets_.sprite(frame), px, py + static_cast<int>(bob), kTile, kTile);
     } else {
         double bob = player_.moving() ? std::sin(player_.animTime() * 18.0) * 2.0 : 0.0;
         renderer_.drawSprite(assets_.sprite("player"), px,

@@ -6,7 +6,7 @@
 #include <vector>
 
 // Snapshot of persistent state. Written as JSON to
-// ~/Library/Application Support/sorry/save.json (macOS).
+// ~/Library/Application Support/trippy/save.json (macOS).
 struct SaveData {
     std::string room = "bedroom";
     double playerX = 0;

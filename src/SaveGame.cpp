@@ -15,10 +15,10 @@ namespace {
 std::string saveDirectory() {
 #ifdef __APPLE__
     if (const char* home = std::getenv("HOME"))
-        return std::string(home) + "/Library/Application Support/sorry";
+        return std::string(home) + "/Library/Application Support/trippy";
 #endif
     // Elsewhere let SDL pick the platform-appropriate pref dir.
-    if (char* pref = SDL_GetPrefPath("", "sorry")) {
+    if (char* pref = SDL_GetPrefPath("", "trippy")) {
         std::string dir(pref);
         SDL_free(pref);
         if (!dir.empty() && (dir.back() == '/' || dir.back() == '\\'))

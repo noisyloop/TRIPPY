@@ -9,6 +9,8 @@
 std::string Inventory::displayName(const std::string& itemId) {
     static const std::unordered_map<std::string, std::string> names = {
         {"apology_note", "Apology Note"},
+        {"humming_pebble", "Humming Pebble"},
+        {"third_eye_marble", "Third Eye Marble"},
     };
     auto it = names.find(itemId);
     if (it != names.end()) return it->second;

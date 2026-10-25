@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "NPC.h"
+#include "UFO.h"
 
 namespace fs = std::filesystem;
 
@@ -147,7 +148,10 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
             std::cerr << "[rooms] " << name << ": npc slot " << i << " has no id in meta\n";
             continue;
         }
-        room->addEntity(std::make_unique<NPC>(it->second, npcSlots[i].tx, npcSlots[i].ty));
+        if (it->second.rfind("ufo_", 0) == 0)
+            room->addEntity(std::make_unique<UFO>(it->second, npcSlots[i].tx, npcSlots[i].ty));
+        else
+            room->addEntity(std::make_unique<NPC>(it->second, npcSlots[i].tx, npcSlots[i].ty));
     }
     for (size_t i = 0; i < itemSlots.size(); ++i) {
         auto it = itemIds.find(static_cast<int>(i));

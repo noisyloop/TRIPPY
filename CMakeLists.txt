@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(sorry CXX)
+project(trippy CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,7 +20,7 @@ pkg_check_modules(SDL2_TTF REQUIRED IMPORTED_TARGET SDL2_ttf)
 pkg_check_modules(SDL2_IMAGE REQUIRED IMPORTED_TARGET SDL2_image)
 pkg_check_modules(SDL2_MIXER REQUIRED IMPORTED_TARGET SDL2_mixer)
 
-add_executable(sorry
+add_executable(trippy
   src/main.cpp
   src/Game.cpp
   src/Renderer.cpp
@@ -30,6 +30,7 @@ add_executable(sorry
   src/Player.cpp
   src/Entity.cpp
   src/NPC.cpp
+  src/UFO.cpp
   src/Dialogue.cpp
   src/Inventory.cpp
   src/SaveGame.cpp
@@ -38,11 +39,11 @@ add_executable(sorry
   src/Assets.cpp
 )
 
-target_link_libraries(sorry PRIVATE
+target_link_libraries(trippy PRIVATE
   PkgConfig::SDL2
   PkgConfig::SDL2_TTF
   PkgConfig::SDL2_IMAGE
   PkgConfig::SDL2_MIXER
 )
 
-target_compile_options(sorry PRIVATE -Wall -Wextra)
+target_compile_options(trippy PRIVATE -Wall -Wextra)

@@ -1,0 +1,6 @@
+# Saucers graze here. North is just the south of the same sky.
+music_mood = playful_major
+transitions = south:mobius_hall north:saucer_meadow west:tessellation_temple
+npcs = 0:ufo_glimmer 1:ufo_humm 2:ufo_wobble
+items = 0:humming_pebble
+on_enter_flag = entered_meadow
