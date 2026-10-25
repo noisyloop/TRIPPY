@@ -18,6 +18,9 @@ option(TRIPPY_VENDOR_SDL "Download and statically link SDL2, SDL2_ttf, SDL2_imag
 
 if(TRIPPY_VENDOR_SDL)
   include(FetchContent)
+  # The freetype bundled in SDL2_ttf still declares cmake_minimum_required
+  # < 3.5, which CMake 4 (GitHub runners) refuses without this.
+  set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
   set(SDL_SHARED OFF CACHE BOOL "" FORCE)
