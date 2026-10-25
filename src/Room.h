@@ -46,6 +46,13 @@ public:
     void setOnEnterFlag(std::string f) { onEnterFlag_ = std::move(f); }
     const std::string& onEnterFlag() const { return onEnterFlag_; }
 
+    // Psychedelia, 0..1 (from .meta: trip = 0.6, kaleidoscope = 0.8).
+    // trip scales hue cycling, screen warp and afterimage trails.
+    void setTrip(double t) { trip_ = t; }
+    double trip() const { return trip_; }
+    void setKaleidoscope(double k) { kaleido_ = k; }
+    double kaleidoscope() const { return kaleido_; }
+
     void setTransition(Direction d, std::string room) { transitions_[d] = std::move(room); }
     // Empty string if there is no transition that way.
     std::string transitionTo(Direction d) const;
@@ -68,6 +75,8 @@ private:
     std::vector<DoorTile> doors_;
     std::string mood_ = "calm_pentatonic";
     std::string onEnterFlag_;
+    double trip_ = 0.3;
+    double kaleido_ = 0.0;
     std::unordered_map<Direction, std::string> transitions_;
     std::vector<std::unique_ptr<Entity>> entities_;
 };

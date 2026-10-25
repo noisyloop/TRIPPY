@@ -28,8 +28,14 @@ public:
     Audio(const Audio&) = delete;
     Audio& operator=(const Audio&) = delete;
 
+    // Every call is a new "visit": the synth rolls a fresh tune within the
+    // mood, seeded per run + per call.
     void playMood(const std::string& moodName);
     const std::string& currentMood() const { return moodName_; }
+
+    // Player motion -> synth (see ChiptuneSynth::setMotion).
+    void setMotion(float energy, int facing, int turns) { synth_.setMotion(energy, facing, turns); }
+    uint32_t beatCount() const { return synth_.beatCount(); }
 
     // Built-in names: "blip" (dialogue tick), "pickup", "bump", "confirm".
     void playSfx(const std::string& name);
@@ -46,4 +52,6 @@ private:
     std::unordered_map<std::string, ChunkPtr> sfxChunks_;
     bool open_ = false;
     bool hookActive_ = false;
+    uint32_t runSeed_ = 0;
+    uint32_t visits_ = 0;
 };

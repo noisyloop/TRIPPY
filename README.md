@@ -6,12 +6,42 @@ a jeweled being in a temple folds greetings out of light. Small rooms, moody
 music, dialogue that remembers what you said. (Formerly SORRY — the original
 bedroom/hallway/garden rooms are still the starting path.)
 
-All music is **synthesized in code** — a four-voice chiptune generator makes a
-deterministic looping track per "mood", and rooms crossfade between moods as
-you walk. Missing sprites are generated at runtime as labeled colored squares,
+All music is **synthesized in code** and plays along with you: every run and
+every room visit rolls a new tune within the room's mood (scale, root,
+tempo, pattern). Walking speeds it up and fills in the melody, turning
+changes the arpeggio shape and octave, and standing still slows it down and
+lets the melody dissolve into a breathing drone. The visuals pulse on its
+beat. Missing sprites are generated at runtime as labeled colored squares,
 so the game is fully playable before a single asset exists.
 
-## Quick start
+## Download
+
+- **macOS** (Apple Silicon + Intel): [TRIPPY-macos.dmg](https://github.com/noisyloop/TRIPPY/releases/latest/download/TRIPPY-macos.dmg)
+- **Windows**: [TRIPPY-windows.zip](https://github.com/noisyloop/TRIPPY/releases/latest/download/TRIPPY-windows.zip)
+
+These always point at the newest release ([all releases](https://github.com/noisyloop/TRIPPY/releases)).
+
+## Install (no build needed)
+
+Every push to `main` is built on GitHub Actions and published as a new
+release (`v0.<build number>`); pushing a `v*` tag releases under that name.
+Grab the latest from the repo's **Releases** page:
+
+- **macOS** (Apple Silicon + Intel): `TRIPPY-macos.dmg` → drag TRIPPY into
+  Applications. It isn't signed by Apple, so the first launch is blocked:
+  right-click TRIPPY → **Open** → **Open**, or run once in Terminal:
+  `xattr -dr com.apple.quarantine /Applications/TRIPPY.app`
+- **Windows**: `TRIPPY-windows.zip` → unzip the whole folder, run
+  `trippy.exe`. On "Windows protected your PC" click **More info** →
+  **Run anyway**.
+
+Builds from other branches and PRs are attached to their Actions run as
+artifacts. Packaging lives in `.github/workflows/build.yml` and
+`packaging/` — SDL2 and its satellite libs are downloaded by CMake
+(`-DTRIPPY_VENDOR_SDL=ON`) and linked statically; nothing is code-signed
+(the .app gets an ad-hoc signature so Apple Silicon will run it).
+
+## Quick start (build from source)
 
 ```sh
 cmake -B build && cmake --build build && ./build/trippy
@@ -93,6 +123,7 @@ src/
   Entity.{h,cpp}      Base for NPCs / items / triggers
   NPC.{h,cpp}         NPC entity (dialogue looked up by id)
   UFO.{h,cpp}         Drifting saucer NPC (ids starting with ufo_)
+  TripFX.{h,cpp}      Offscreen playfield, sine warp strips, kaleidoscope, HSV helpers
   Dialogue.{h,cpp}    Dialogue trees (in code) + typewriter dialogue box
   Inventory.{h,cpp}   Item list + display names + overlay
   SaveGame.{h,cpp}    JSON save/load (hand-rolled, zero deps)
@@ -127,6 +158,9 @@ assets/
    items = 0:room_key
    # optional: set a story flag the moment the player walks in
    on_enter_flag = reached_myroom
+   # optional psychedelia, 0..1 (default trip 0.3, kaleidoscope 0)
+   trip = 0.6           # hue cycling + screen warp + afterimage trails
+   kaleidoscope = 0.6   # 12-wedge mirror around the player
    ```
 
    Any npc id starting with `ufo_` becomes a drifting saucer: it floats in
@@ -159,15 +193,24 @@ Moods live in `moodTable()` in `src/ChiptuneSynth.cpp`:
 
 ```cpp
 // name              scale (semitones)      root bpm  seed   duty  bright noise
-{"neon_waltz",       {0, 2, 3, 5, 7, 9, 10}, 56, 90, 0x1234, 0.25f, 0.9f, 2},
+{"neon_waltz",       {0, 2, 3, 5, 7, 9, 10}, 56, 90, 0x1234, 0.25f, 0.9f, 2, {dorian, minorPent}},
 ```
 
 - `scale`: semitone offsets from the root; melody, bass and arps only ever
   use these, so the scale *is* the mood's harmonic character.
 - `root`: MIDI note (57 = A3). Lower = darker.
 - `bpm`: tempo; also nudges melody density (faster moods play busier lines).
-- `seed`: any number — patterns are generated deterministically from it, so
-  a mood always sounds the same. Change the seed to reroll the tune.
+- `seed`: any number — mixed with a per-run, per-visit seed, so a mood
+  sounds different on every visit but keeps its character.
+- alt scales (last column): other scales a visit may pick instead of
+  `scale`. Each visit also shifts the root ±3 semitones and tempo ±8%.
+
+Live controls (`ChiptuneSynth::setMotion`, fed by `Game::update`): energy
+0..1 builds over ~2s of walking and drains over ~1.5s standing still. It
+scales tempo 0.6x–1.2x, how many melody candidate notes play, arp/hat
+levels, and crossfades melody ↔ drone. Each direction change cycles the arp
+through four shapes; facing up/right lifts it an octave. The device stays
+mono 44.1 kHz int16 (see "Audio format switch").
 - `duty`: melody square-wave duty cycle. 0.5 = hollow/round, 0.25 = classic
   NES lead, 0.125 = thin and buzzy.
 - `brightness`: overall level trim. `noise`: 0–4 percussion busyness
@@ -192,9 +235,13 @@ placeholder, so you can replace art one file at a time:
 | `npc_hallkeeper.png`, `npc_tessellator.png`, `npc_mirror_you.png` | strange-room NPCs |
 | `apology_note.png` | the starter item (also its inventory icon) |
 
-Missing player frames are generated as a pixel alien and `ufo_*` as a
-pixel saucer (other placeholders stay labeled squares). The previous human
-hero art lives in `assets/sprites/legacy/` and is not loaded.
+Missing art is generated: player frames → pixel alien, `ufo_*` → pixel
+saucer, `tile_*` → grayscale sacred geometry (seed-of-life floor, hexagram
+walls, spiral grass, vesica-eye doors), `npc_*` → a radial three-eyed
+being, items → a hexagram gem. Tiles are tinted with a hue-cycled color
+every frame, so real tile PNGs get partially tinted too (by the room's
+`trip`). The older SORRY art lives in `assets/sprites/legacy/` and is not
+loaded (move a file back up to use it).
 
 Any new NPC/item id you invent in a `.meta` file automatically looks for
 `assets/sprites/<id>.png` the same way.
@@ -217,12 +264,13 @@ drop any `.ttf` in `assets/fonts/` (first file found is used, 18pt).
 **Musician** — you have two options, both zero-code:
 
 1. *Tweak the synth*: edit the mood rows in `src/ChiptuneSynth.cpp`
-   (scale/root/bpm/seed/duty) — it's one line per mood and rebuilds in
-   seconds. Rerolling seeds until the melody lands is a legitimate workflow.
+   (scale/root/bpm/seed/duty/alt scales) — it's one line per mood and
+   rebuilds in seconds.
 2. *Replace with recordings*: drop a loopable track named after the mood into
    `assets/music/` — e.g. `assets/music/melancholy_a_minor.ogg` (also accepts
    `.wav`, `.mp3`, `.flac`). If that file exists, it plays (looped, 1.5s
-   fade-in) instead of the synth; delete it and the synth takes over again.
+   fade-in) instead of the synth (recordings don't react to movement or
+   drive the beat pulse); delete it and the synth takes over again.
    Note the mixer runs mono at 44.1kHz — stereo files will be downmixed by
    SDL_mixer, so master accordingly.
 

@@ -1,5 +1,6 @@
 #include "RoomLoader.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -122,6 +123,14 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
             room->setMood(value);
         } else if (key == "on_enter_flag") {
             room->setOnEnterFlag(value);
+        } else if (key == "trip" || key == "kaleidoscope") {
+            double v = 0;
+            try { v = std::clamp(std::stod(value), 0.0, 1.0); }
+            catch (const std::exception&) {
+                std::cerr << "[rooms] " << name << ": bad " << key << " '" << value << "'\n";
+            }
+            if (key == "trip") room->setTrip(v);
+            else room->setKaleidoscope(v);
         } else if (key == "transitions") {
             std::istringstream ss(value);
             std::string tok;

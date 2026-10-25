@@ -29,7 +29,8 @@ struct SdlRuntime {
 
 }  // namespace
 
-int main() {
+// SDL wants this exact signature (SDL2main supplies WinMain on Windows).
+int main(int, char*[]) {
     try {
         SdlRuntime sdl;
         Game game;

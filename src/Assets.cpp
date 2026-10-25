@@ -1,6 +1,11 @@
 #include "Assets.h"
+#include "TripFX.h"
 
 #include <SDL_image.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
 
 #include <filesystem>
 #include <iostream>
@@ -39,12 +44,15 @@ FontPtr openAnyFont(const std::string& root, int ptSize) {
         }
     }
     // System fallbacks: macOS first (the target platform), then common Linux
-    // paths so the game also runs in CI containers.
+    // paths (CI containers), then Windows.
     for (const char* path : {
              "/System/Library/Fonts/Supplemental/Andale Mono.ttf",
              "/System/Library/Fonts/Monaco.ttf",
              "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
              "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+             "C:/Windows/Fonts/consola.ttf",
+             "C:/Windows/Fonts/lucon.ttf",
+             "C:/Windows/Fonts/cour.ttf",
          }) {
         if (TTF_Font* f = TTF_OpenFont(path, ptSize))
             return FontPtr(f);
@@ -60,13 +68,6 @@ SDL_Color colorForName(const std::string& name) {
         return static_cast<Uint8>(96 + ((h >> shift) & 0x7F));  // keep it bright-ish
     };
     return SDL_Color{channel(0), channel(8), channel(16), 255};
-}
-
-char glyphForName(const std::string& name) {
-    // "npc_mother" -> 'M', "apology_note" -> 'N', "player" -> 'P'
-    auto pos = name.find_last_of('_');
-    char c = (pos != std::string::npos && pos + 1 < name.size()) ? name[pos + 1] : name.empty() ? '?' : name[0];
-    return static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 }
 
 // Paints a 16x16 character grid at 2x into a 32x32 surface. '.' = clear.
@@ -103,9 +104,9 @@ void paintAlien(SDL_Surface* surf, const std::string& name) {
         "...gKKggggKKg...",
         "....gggggggg....",
         "......gggg......",
-        "....bbbbbbbb....",
+        "....rrrrrrrr....",
         "...gbbbybbbbg...",
-        "....bbbbbbbb....",
+        "....cccccccc....",
         "....gg....gg....",
         "....gg....gg....",
     };
@@ -129,7 +130,7 @@ void paintAlien(SDL_Surface* surf, const std::string& name) {
     paintGrid(surf, rows, {
         {'g', {120, 255, 150, 255}}, {'K', {12, 6, 30, 255}}, {'W', {255, 255, 255, 255}},
         {'a', {200, 255, 210, 255}}, {'p', {255, 80, 220, 255}}, {'b', {150, 70, 255, 255}},
-        {'y', {255, 240, 90, 255}},
+        {'y', {255, 240, 90, 255}}, {'r', {255, 70, 160, 255}}, {'c', {70, 230, 255, 255}},
     });
 }
 
@@ -159,6 +160,119 @@ void paintSaucer(SDL_Surface* surf, SDL_Color hull) {
         {'m', hull}, {'d', dark}, {'c', {140, 255, 255, 220}}, {'W', {255, 255, 255, 255}},
         {'Y', {255, 250, 120, 255}}, {'t', {200, 255, 120, 70}},
     });
+}
+
+constexpr double kPi = 3.14159265358979323846;
+
+void putPixel(SDL_Surface* surf, int x, int y, SDL_Color c) {
+    SDL_Rect px{x, y, 1, 1};
+    SDL_FillRect(surf, &px, SDL_MapRGBA(surf->format, c.r, c.g, c.b, c.a));
+}
+
+// Distance from p to segment ab.
+double segDist(double px, double py, double ax, double ay, double bx, double by) {
+    const double dx = bx - ax, dy = by - ay;
+    double t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
+    t = std::clamp(t, 0.0, 1.0);
+    return std::hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+// Terrain is drawn in grayscale sacred geometry; the game tints it with a
+// hue-cycled color every frame (SDL_SetTextureColorMod), so white = tint.
+void paintTile(SDL_Surface* surf, const std::string& name) {
+    for (int y = 0; y < 32; ++y) {
+        for (int x = 0; x < 32; ++x) {
+            const double fx = x + 0.5, fy = y + 0.5;
+            const double cx = fx - 16, cy = fy - 16, r = std::hypot(cx, cy);
+            double v = 0.45;
+            if (name == "tile_floor") {
+                // Seed-of-life lattice: circles on corners + center, seamless.
+                double ring = 99;
+                static const int centers[][2] = {{0, 0}, {32, 0}, {0, 32}, {32, 32}, {16, 16},
+                                                 {16, -16}, {16, 48}, {-16, 16}, {48, 16}};
+                for (const auto& o : centers)
+                    ring = std::min(ring, std::fabs(std::hypot(fx - o[0], fy - o[1]) - 16));
+                v = 0.42 + 0.58 * std::max(0.0, 1 - ring / 1.2);
+                if (r < 1.6) v = 1;
+            } else if (name == "tile_wall") {
+                // Hexagram inside a square frame.
+                double d = 99;
+                const double up[3][2] = {{16, 3}, {28.5, 24.5}, {3.5, 24.5}};
+                const double dn[3][2] = {{16, 29}, {3.5, 7.5}, {28.5, 7.5}};
+                for (int i = 0; i < 3; ++i) {
+                    d = std::min(d, segDist(fx, fy, up[i][0], up[i][1], up[(i + 1) % 3][0], up[(i + 1) % 3][1]));
+                    d = std::min(d, segDist(fx, fy, dn[i][0], dn[i][1], dn[(i + 1) % 3][0], dn[(i + 1) % 3][1]));
+                }
+                v = 0.25 + 0.6 * std::max(0.0, 1 - d / 1.1);
+                if (x < 1 || y < 1 || x > 30 || y > 30) v = 0.7;
+            } else if (name == "tile_grass") {
+                // Golden-ish spiral arms.
+                double theta = std::atan2(cy, cx);
+                double arm = std::sin(3 * theta + 1.7 * std::log(r + 1) * 3);
+                v = 0.4 + 0.45 * std::max(0.0, arm);
+            } else {  // tile_door: vesica piscis eye with a pupil and rays
+                double a = std::hypot(fx - 10, fy - 16), b = std::hypot(fx - 22, fy - 16);
+                bool lens = a < 12 && b < 12;
+                v = lens ? 0.95 : 0.35 + 0.3 * std::max(0.0, std::sin(std::atan2(cy, cx) * 8));
+                if (std::fabs(a - 12) < 0.8 || std::fabs(b - 12) < 0.8) v = 1;
+                if (r < 4) v = 0.1;
+                if (r < 1.5) v = 1;
+            }
+            putPixel(surf, x, y, hsvColor(0, 0, v));
+        }
+    }
+}
+
+// NPC placeholder: a radially symmetric "being" with three eyes. Petal count
+// and hues come from the name hash, so each one is distinct but stable.
+void paintBeing(SDL_Surface* surf, const std::string& name) {
+    uint32_t h = 2166136261u;
+    for (char c : name) { h ^= static_cast<uint8_t>(c); h *= 16777619u; }
+    const int petals = 5 + static_cast<int>(h % 4);
+    const double hue = (h >> 8) % 360;
+    for (int y = 0; y < 32; ++y) {
+        for (int x = 0; x < 32; ++x) {
+            const double cx = x + 0.5 - 16, cy = y + 0.5 - 16;
+            const double r = std::hypot(cx, cy), th = std::atan2(cy, cx);
+            const double edge = 10.5 + 4.5 * std::cos(petals * th);
+            if (r > edge) continue;
+            SDL_Color c = hsvColor(hue + r * 14, 0.85, edge - r < 1.2 ? 1.0 : 0.75 + 0.25 * std::cos(r));
+            putPixel(surf, x, y, c);
+        }
+    }
+    const SDL_Color white{255, 255, 255, 255}, ink{10, 4, 24, 255};
+    static const int eyes[][2] = {{12, 15}, {20, 15}, {16, 10}};
+    for (const auto& e : eyes) {
+        const int ex = e[0], ey = e[1];
+        SDL_Rect eye{ex - 2, ey - 2, 4, 4}, pupil{ex - 1, ey - 1, 2, 2};
+        SDL_FillRect(surf, &eye, SDL_MapRGBA(surf->format, white.r, white.g, white.b, 255));
+        SDL_FillRect(surf, &pupil, SDL_MapRGBA(surf->format, ink.r, ink.g, ink.b, 255));
+    }
+}
+
+// Item placeholder: glowing hexagon with an inscribed star (Metatron-ish).
+void paintGem(SDL_Surface* surf, const std::string& name) {
+    const double hue = colorForName(name).r * 1.4;
+    for (int y = 0; y < 32; ++y) {
+        for (int x = 0; x < 32; ++x) {
+            const double fx = x + 0.5, fy = y + 0.5;
+            const double r = std::hypot(fx - 16, fy - 16);
+            double hex[6][2];
+            for (int i = 0; i < 6; ++i) {
+                hex[i][0] = 16 + 14 * std::cos(i * kPi / 3 + kPi / 6);
+                hex[i][1] = 16 + 14 * std::sin(i * kPi / 3 + kPi / 6);
+            }
+            double d = 99;
+            for (int i = 0; i < 6; ++i) {
+                d = std::min(d, segDist(fx, fy, hex[i][0], hex[i][1], hex[(i + 1) % 6][0], hex[(i + 1) % 6][1]));
+                d = std::min(d, segDist(fx, fy, hex[i][0], hex[i][1], hex[(i + 2) % 6][0], hex[(i + 2) % 6][1]));
+            }
+            if (d < 1.0)
+                putPixel(surf, x, y, hsvColor(hue + r * 10, 0.6, 1.0));
+            else if (r < 6)
+                putPixel(surf, x, y, hsvColor(hue + 180, 0.7, 1.0, static_cast<Uint8>(255 - r * 30)));
+        }
+    }
 }
 
 }  // namespace
@@ -203,7 +317,7 @@ bool Assets::spriteIsPlaceholder(const std::string& name) {
 SDL_Texture* Assets::makePlaceholder(const std::string& name) {
     constexpr int kSize = 32;
     SurfacePtr surf(SDL_CreateRGBSurfaceWithFormat(0, kSize, kSize, 32, SDL_PIXELFORMAT_RGBA32));
-    SDL_Color body = colorForName(name);
+    const SDL_Color body = colorForName(name);
 
     // Pixel-art placeholders for the cast that needs to read as a shape.
     if (name.rfind("player", 0) == 0 || name.rfind("ufo_", 0) == 0) {
@@ -212,24 +326,14 @@ SDL_Texture* Assets::makePlaceholder(const std::string& name) {
         else paintSaucer(surf.get(), body);
         return SDL_CreateTextureFromSurface(renderer_.sdl(), surf.get());
     }
-    SDL_FillRect(surf.get(), nullptr,
-                 SDL_MapRGBA(surf->format, body.r, body.g, body.b, 255));
-    SDL_Rect border{0, 0, kSize, kSize};
-    SDL_Color edge{static_cast<Uint8>(body.r / 2), static_cast<Uint8>(body.g / 2),
-                   static_cast<Uint8>(body.b / 2), 255};
-    // 2px darker border, drawn as four bars.
-    Uint32 edgePx = SDL_MapRGBA(surf->format, edge.r, edge.g, edge.b, 255);
-    SDL_Rect bars[] = {{0, 0, kSize, 2}, {0, kSize - 2, kSize, 2}, {0, 0, 2, kSize}, {kSize - 2, 0, 2, kSize}};
-    for (auto& b : bars) SDL_FillRect(surf.get(), &b, edgePx);
-    (void)border;
-
-    char glyph[2] = {glyphForName(name), '\0'};
-    SDL_Color ink{255, 255, 255, 255};
-    if (SDL_Surface* g = TTF_RenderUTF8_Blended(font_.get(), glyph, ink)) {
-        SurfacePtr glyphSurf(g);
-        SDL_Rect dst{(kSize - g->w) / 2, (kSize - g->h) / 2, g->w, g->h};
-        SDL_BlitSurface(glyphSurf.get(), nullptr, surf.get(), &dst);
+    if (name.rfind("tile_", 0) == 0) {
+        paintTile(surf.get(), name);
+        return SDL_CreateTextureFromSurface(renderer_.sdl(), surf.get());
     }
+    // NPCs become radial beings; everything else (items) a sacred-geometry gem.
+    SDL_FillRect(surf.get(), nullptr, SDL_MapRGBA(surf->format, 0, 0, 0, 0));
+    if (name.rfind("npc_", 0) == 0) paintBeing(surf.get(), name);
+    else paintGem(surf.get(), name);
     return SDL_CreateTextureFromSurface(renderer_.sdl(), surf.get());
 }
 

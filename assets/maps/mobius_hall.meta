@@ -3,3 +3,4 @@ music_mood = dread_diminished
 transitions = west:garden east:mobius_hall north:saucer_meadow
 npcs = 0:npc_hallkeeper 1:ufo_pilgrim
 on_enter_flag = entered_mobius
+trip = 0.7

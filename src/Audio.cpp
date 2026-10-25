@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -36,6 +37,9 @@ std::vector<Uint8> renderSweep(double startHz, double endHz, double seconds,
 }  // namespace
 
 Audio::Audio(Assets& assets) : assets_(assets) {
+    // A different set of tunes every run.
+    runSeed_ = static_cast<uint32_t>(SDL_GetPerformanceCounter())
+               ^ (static_cast<uint32_t>(std::time(nullptr)) * 2654435761u);
     // Mono S16 at the synth's rate so the music hook can write samples directly.
     if (Mix_OpenAudioDevice(ChiptuneSynth::kSampleRate, AUDIO_S16SYS, 1, 1024,
                             nullptr, 0) != 0)
@@ -92,7 +96,9 @@ void Audio::playMood(const std::string& moodName) {
         Mix_HookMusic(musicHook, &synth_);
         hookActive_ = true;
     }
-    synth_.setMood(moodName);
+    // Non-zero, distinct per visit.
+    uint32_t visit = (runSeed_ + ++visits_ * 0x9E3779B9u) | 1u;
+    synth_.setMood(moodName, visit);
 }
 
 void Audio::playSfx(const std::string& name) {
