@@ -46,7 +46,7 @@ const std::unordered_map<std::string, DuelScript>& duelRegistry() {
             },
             "YOU ARE SIGNAL. RIDE THE BEAM UP, LITTLE ONE. THE JEWELED ONES ARE "
             "EXPECTING YOU. OR WILL HAVE BEEN.",
-            "saucer_song",
+            "saucer_song", "",
         };
 
         d["boss_choir"] = DuelScript{
@@ -74,7 +74,7 @@ const std::unordered_map<std::string, DuelScript>& duelRegistry() {
             },
             "--YOU FINISHED US. --NOW WE CAN START. --GO ON, VISITOR. --THE WAITING "
             "ROOM IS WAITING.",
-            "choir_echo",
+            "choir_echo", "",
         };
 
         d["boss_customs"] = DuelScript{
@@ -102,7 +102,7 @@ const std::unordered_map<std::string, DuelScript>& duelRegistry() {
                  "OFF THE BEAT. THE INK HAS FEELINGS, YOU KNOW."},
             },
             "...FINE. FINE! YOU ARE CLEARED. NOW IS RIGHT THROUGH THERE. MIND THE WEIGHT.",
-            "visa_of_now",
+            "visa_of_now", "",
         };
 
         d["boss_weight"] = DuelScript{
@@ -130,7 +130,7 @@ const std::unordered_map<std::string, DuelScript>& duelRegistry() {
             },
             "Okay. I'm putting myself down now. ...Oh. Oh, that's nice. Wake up, "
             "visitor. Wake up all the way.",
-            "feather_of_letting_go",
+            "feather_of_letting_go", "bedroom_awake",
         };
 
         return d;

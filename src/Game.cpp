@@ -100,6 +100,17 @@ void Game::enterRoom(const std::string& name, const Direction* fromDir, bool aut
         player_.setTilePosition(tx, ty);
     }
 
+    entryX_ = player_.x();
+    entryY_ = player_.y();
+    onWarp_ = room_->tileAt(player_.tileX(), player_.tileY()) == Tile::Warp;
+
+    // Every floor item in the game -> the second ending opens up.
+    static const char* kCollectibles[] = {"apology_note", "humming_pebble", "third_eye_marble",
+                                          "core_spark", "moon_milk", "library_page", "color_nine_seed"};
+    bool all = true;
+    for (const char* id : kCollectibles) all = all && inventory_.has(id);
+    if (all) setFlag("collected_everything");
+
     audio_.playMood(room_->mood());
     if (!room_->onEnterFlag().empty())
         setFlag(room_->onEnterFlag());
@@ -217,6 +228,15 @@ void Game::update(double dt) {
         if (input_.inventoryPressed() || input_.interactPressed())
             state_ = State::Exploring;
         break;
+    case State::Cutscene:
+        cutTime_ += dt;
+        room_->update(dt);
+        if (cutTime_ >= kBeamSeconds) {
+            state_ = State::Exploring;
+            Direction travel = cutDir_;
+            enterRoom(cutTarget_, &travel, /*autosave=*/true);
+        }
+        break;
     case State::InDuel:
         duel_.update(dt, input_);
         room_->update(dt);
@@ -244,6 +264,7 @@ void Game::updateTitle(double dt) {
 }
 
 void Game::updateExploring(double dt) {
+    const double prevX = player_.x(), prevY = player_.y();
     player_.update(dt, input_, *room_);
     if (player_.moving() && player_.facing() != lastFacing_) {
         lastFacing_ = player_.facing();
@@ -252,18 +273,64 @@ void Game::updateExploring(double dt) {
     room_->update(dt);
     pickupItemsUnderPlayer();
 
-    // Standing on a door tile fires its transition.
+    // Standing on a door tile fires its transition (unless it's locked).
     if (const auto* door = room_->doorAt(player_.tileX(), player_.tileY())) {
         std::string target = room_->transitionTo(door->dir);
-        if (!target.empty()) {
+        const std::string lock = room_->lockFor(door->dir);
+        if (!target.empty() && !lock.empty() && !hasFlag(lock)) {
+            player_.setPixelPosition(prevX, prevY);  // nudge back off the door
+            if (toastTime_ < 2.0) {
+                toast("the door hums. not yet.", 2.5);
+                audio_.playSfx("bump");
+            }
+        } else if (!target.empty() && room_->beamFor(door->dir)) {
+            cutTarget_ = target;
+            cutDir_ = door->dir;
+            cutTime_ = 0;
+            state_ = State::Cutscene;
+            toast("the sky picks you up.", kBeamSeconds);
+            audio_.playSfx("pickup");
+            return;
+        } else if (!target.empty()) {
             Direction travel = door->dir;
             enterRoom(target, &travel, /*autosave=*/true);
             return;
         }
     }
+    updateSpecialTiles();
 
     if (input_.interactPressed())
         tryInteract();
+}
+
+void Game::updateSpecialTiles() {
+    const Tile under = room_->tileAt(player_.tileX(), player_.tileY());
+    if (under == Tile::Void) {
+        toast("you fall up.", 2.5);
+        audio_.playSfx("bump");
+        if (!room_->voidTo().empty())
+            enterRoom(room_->voidTo(), nullptr, /*autosave=*/true);
+        else
+            player_.setPixelPosition(entryX_, entryY_);
+        return;
+    }
+    if (under != Tile::Warp) {
+        onWarp_ = false;
+        return;
+    }
+    if (onWarp_) return;
+    // Jump to the next warp tile in reading order (wrapping around).
+    const int w = room_->width(), h = room_->height();
+    const int here = player_.tileY() * w + player_.tileX();
+    for (int i = 1; i < w * h; ++i) {
+        int idx = (here + i) % (w * h);
+        if (room_->tileAt(idx % w, idx / w) == Tile::Warp) {
+            player_.setTilePosition(idx % w, idx / w);
+            onWarp_ = true;
+            audio_.playSfx("confirm");
+            return;
+        }
+    }
 }
 
 void Game::tryInteract() {
@@ -329,6 +396,11 @@ void Game::finishDuel() {
         toast("received: " + Inventory::displayName(script->rewardItem));
     }
     audio_.playSfx("pickup");
+    if (script && !script->afterRoom.empty()) {
+        setFlag("woke_up");
+        enterRoom(script->afterRoom, nullptr, /*autosave=*/false);
+        toast("you wake up.", 4.0);
+    }
     save();
 }
 
@@ -385,6 +457,8 @@ void Game::render() {
                 static_cast<int>((player_.x() + kTile / 2 - camX) * zoom),
                 static_cast<int>((player_.y() + kTile / 2 - camY) * zoom), bg);
 
+    if (state_ == State::Cutscene)
+        renderCutscene(camX, camY, zoom);
     if (state_ == State::InDuel)
         duel_.render(renderer_, assets_, assets_.sprite(duel_.bossId()), worldTime_);
     if (state_ == State::InventoryOpen)
@@ -450,6 +524,10 @@ void Game::renderWorld(double fxTrip, double pulse) {
             case Tile::Floor: spriteName = "tile_floor"; base = pal.floor; val = 0.85; break;
             case Tile::Grass: spriteName = "tile_grass"; base = pal.grass; val = 0.9; break;
             case Tile::Door:  spriteName = "tile_door";  base = pal.door;  val = 1.0; break;
+            case Tile::Void:   spriteName = "tile_void";   base = pal.wall;  val = 0.9; break;
+            case Tile::Mirror: spriteName = "tile_mirror"; base = pal.floor; val = 1.0; break;
+            case Tile::Warp:   spriteName = "tile_warp";   base = pal.door;  val = 1.0; break;
+            case Tile::Stairs: spriteName = "tile_stairs"; base = pal.floor; val = 0.9; break;
             }
             // Tiles flash brighter on the beat.
             val *= 1.0 - 0.3 * fxTrip * (1.0 - pulse);
@@ -457,6 +535,10 @@ void Game::renderWorld(double fxTrip, double pulse) {
             const bool real = !assets_.spriteIsPlaceholder(spriteName);
             if (real)
                 tint = lerpColor(SDL_Color{255, 255, 255, 255}, tint, fxTrip);
+            else if (t == Tile::Mirror)  // glass stays pale whatever the hue
+                tint = lerpColor(tint, SDL_Color{230, 240, 255, 255}, 0.55);
+            else if (t == Tile::Warp)    // warps spin the color wheel faster
+                tint = hueRotate(tint, worldTime_ * 180.0);
             SDL_Texture* tex = assets_.sprite(spriteName);
             SDL_SetTextureColorMod(tex, tint.r, tint.g, tint.b);
             renderer_.drawSprite(tex, tx * kTile, ty * kTile, kTile, kTile);
@@ -478,7 +560,8 @@ void Game::renderWorld(double fxTrip, double pulse) {
             }
         }
     }
-    for (const char* n : {"tile_floor", "tile_wall", "tile_grass", "tile_door"})
+    for (const char* n : {"tile_floor", "tile_wall", "tile_grass", "tile_door", "tile_void",
+                          "tile_mirror", "tile_warp", "tile_stairs"})
         SDL_SetTextureColorMod(assets_.sprite(n), 255, 255, 255);
 
     // Entities.
@@ -514,6 +597,27 @@ void Game::renderWorld(double fxTrip, double pulse) {
         SDL_SetTextureColorMod(tex, 255, 255, 255);
         SDL_SetTextureAlphaMod(tex, 255);
     }
+
+    // Mirror floors: a reflection walks the opposite way across the room.
+    {
+        const double twinX = room_->pixelWidth() - kTile - player_.x();
+        const int ttx = static_cast<int>((twinX + kTile / 2) / kTile);
+        if (room_->tileAt(ttx, player_.tileY()) == Tile::Mirror && state_ != State::Cutscene) {
+            std::string twin = player_.spriteName();
+            if (auto p = twin.find("left"); p != std::string::npos) twin.replace(p, 4, "right");
+            else if (auto q = twin.find("right"); q != std::string::npos) twin.replace(q, 5, "left");
+            SDL_Texture* tex = assets_.sprite(twin);
+            SDL_Color c = hsvColor(worldTime_ * 50 + 180, 0.4, 1.0);
+            SDL_SetTextureColorMod(tex, c.r, c.g, c.b);
+            SDL_SetTextureAlphaMod(tex, 170);
+            renderer_.drawSprite(tex, static_cast<int>(twinX), static_cast<int>(player_.y()), kTile, kTile);
+            SDL_SetTextureColorMod(tex, 255, 255, 255);
+            SDL_SetTextureAlphaMod(tex, 255);
+        }
+    }
+
+    if (state_ == State::Cutscene)
+        return;  // the beam carries the player; drawn by renderCutscene
 
     // Player: directional frames if real art exists, bobbing fallback if not.
     std::string frame = player_.spriteName();
@@ -559,6 +663,7 @@ void Game::renderStatusBar() {
     case State::InDialogue:    hint = "E: continue"; break;
     case State::InventoryOpen: hint = "I: close"; break;
     case State::InDuel:        hint = "E: answer   arrows: echo / beat"; break;
+    case State::Cutscene:      break;
     case State::Exploring: {
         int tx, ty;
         player_.facingTile(tx, ty);
@@ -583,4 +688,26 @@ void Game::renderToast() {
     renderer_.fillRect(box, SDL_Color{16, 10, 28, a});
     renderer_.outlineRect(box, hsvColor(worldTime_ * 90, 0.7, 1.0, a));
     renderer_.drawText(assets_, toast_, box.x + 16, box.y + 7, SDL_Color{235, 231, 240, a});
+}
+
+void Game::renderCutscene(int camX, int camY, float zoom) {
+    // A widening column of light; the alien floats up it and away.
+    const double t = std::min(1.0, cutTime_ / kBeamSeconds);
+    const int sx = static_cast<int>((player_.x() + kTile / 2 - camX) * zoom);
+    const int sy = static_cast<int>((player_.y() - camY) * zoom);
+    const int beamW = static_cast<int>((24 + 90 * t) * zoom);
+    for (int i = 0; i < 6; ++i) {
+        int w = beamW * (6 - i) / 6;
+        SDL_Color c = hsvColor(worldTime_ * (calm() ? 20 : 120) + i * 30, 0.5, 1.0,
+                               static_cast<Uint8>(40 + i * 18));
+        renderer_.fillRect(SDL_Rect{sx - w / 2, 0, w, Renderer::kViewH}, c);
+    }
+    const int size = static_cast<int>(kTile * zoom);
+    const int lift = static_cast<int>(t * t * (sy + size));
+    SDL_Rect dst{sx - size / 2, sy - lift, size, size};
+    SDL_RenderCopy(renderer_.sdl(), assets_.sprite(player_.spriteName()), nullptr, &dst);
+    if (t > 0.75) {  // white-out into the next room
+        Uint8 a = static_cast<Uint8>((t - 0.75) / 0.25 * 255);
+        renderer_.fillRect(SDL_Rect{0, 0, renderer_.width(), Renderer::kViewH}, SDL_Color{255, 255, 255, a});
+    }
 }

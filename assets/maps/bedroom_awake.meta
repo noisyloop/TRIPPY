@@ -1,0 +1,6 @@
+# The bedroom again, but the colors stayed.
+music_mood = calm_pentatonic
+transitions = east:hallway
+npcs = 0:npc_mother_awake
+trip = 0.9
+kaleidoscope = 0.15

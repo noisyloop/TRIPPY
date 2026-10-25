@@ -146,6 +146,10 @@ assets/
    ```
    #  wall        .  floor       ~  tall grass
    >  door        N  npc slot    I  item slot
+   V  void (fall: land in void_to, or back at the entrance)
+   M  mirror floor (your reflection walks the other way across it)
+   ^  warp (jumps to the next ^ in reading order)
+   =  stairs (floor)
    ```
 
    Doors get a compass direction from where they sit: top row = north,
@@ -163,6 +167,10 @@ assets/
    # optional psychedelia, 0..1 (default trip 0.3, kaleidoscope 0)
    trip = 0.6           # hue cycling + screen warp + afterimage trails
    kaleidoscope = 0.6   # 12-wedge mirror around the player
+   # optional gates and tricks
+   locks = north:beat_boss_choir   # door opens once that flag is set
+   beam = north                    # leaving that way plays the tractor beam
+   void_to = color_nine_garden     # where V tiles drop you
    ```
 
    Any npc id starting with `ufo_` becomes a drifting saucer: it floats in
@@ -182,6 +190,21 @@ assets/
    `Inventory::displayName` (unknown ids fall back to de-underscored text).
 
 No C++ changes are needed for the room itself.
+
+**Bosses**: an npc id starting with `boss_` that has a `DuelScript` in
+`duelRegistry()` (`src/Duel.cpp`) starts a conversation duel: Talk rounds
+(pick a reply), Echo rounds (repeat the arrow pattern) and Beat rounds
+(press arrows on the music's beat) move a resonance meter; at 100 the boss
+is won over (`beat_<id>` flag, reward item, optional `afterRoom`). Nobody
+loses — at 0 the conversation just starts over. After that, talking to the
+boss uses its normal dialogue tree.
+
+**The route**: bedroom → hallway → garden → mobius_hall → saucer_meadow →
+(beam) mothership_corridor (+ engine_room, cow_lounge) → observation_deck
+(Mother-of-Saucers) → (beam) fractal_library (+ color_nine_garden) →
+infinite_stair → tessellation_temple (the Choir) → waiting_room (Customs
+Officer) → weight_chamber (The Weight) → bedroom_awake. Bring every floor
+item to the end for the second ending.
 
 **Impossible exits**: a transition may point at the room itself
 (`east:mobius_hall` inside `mobius_hall` loops forever), and if the target

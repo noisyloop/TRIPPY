@@ -1,6 +1,7 @@
-# Saucers graze here. North is just the south of the same sky.
+# Saucers graze here. West is just the east of the same sky; north is the beam up.
 music_mood = playful_major
-transitions = south:mobius_hall north:saucer_meadow west:tessellation_temple
+transitions = south:mobius_hall north:mothership_corridor west:saucer_meadow
+beam = north
 npcs = 0:ufo_glimmer 1:ufo_humm 2:ufo_wobble
 items = 0:humming_pebble
 on_enter_flag = entered_meadow

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -12,6 +13,10 @@ enum class Tile : char {
     Floor = '.',
     Grass = '~',
     Door = '>',
+    Void = 'V',    // fall through: land in .meta void_to (or back at the entrance)
+    Mirror = 'M',  // shiny floor; your reflection walks the other way on it
+    Warp = '^',    // teleports to the next ^ in reading order
+    Stairs = '=',  // floor, but steps
 };
 
 enum class Direction { North, South, East, West };
@@ -53,6 +58,15 @@ public:
     void setKaleidoscope(double k) { kaleido_ = k; }
     double kaleidoscope() const { return kaleido_; }
 
+    // A locked transition only opens once the story flag is set.
+    void setLock(Direction d, std::string flag) { locks_[d] = std::move(flag); }
+    std::string lockFor(Direction d) const;
+    // Transitions that play the tractor-beam cutscene on the way out.
+    void setBeam(Direction d) { beams_.insert(d); }
+    bool beamFor(Direction d) const { return beams_.contains(d); }
+    void setVoidTo(std::string room) { voidTo_ = std::move(room); }
+    const std::string& voidTo() const { return voidTo_; }
+
     void setTransition(Direction d, std::string room) { transitions_[d] = std::move(room); }
     // Empty string if there is no transition that way.
     std::string transitionTo(Direction d) const;
@@ -78,5 +92,8 @@ private:
     double trip_ = 0.3;
     double kaleido_ = 0.0;
     std::unordered_map<Direction, std::string> transitions_;
+    std::unordered_map<Direction, std::string> locks_;
+    std::set<Direction> beams_;
+    std::string voidTo_;
     std::vector<std::unique_ptr<Entity>> entities_;
 };

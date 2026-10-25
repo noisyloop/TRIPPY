@@ -1,0 +1,8 @@
+# Every book is the same book. The gaps between shelves drop you into the garden.
+music_mood = dream_lydian
+transitions = south:observation_deck east:infinite_stair west:color_nine_garden
+npcs = 0:npc_librarian 1:npc_book_that_reads
+items = 0:library_page
+void_to = color_nine_garden
+trip = 0.65
+on_enter_flag = reached_elf_realm

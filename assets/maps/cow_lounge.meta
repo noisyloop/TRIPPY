@@ -1,0 +1,6 @@
+# The cows weren't abducted. They applied. The east half is a mirror.
+music_mood = calm_pentatonic
+transitions = east:mothership_corridor
+npcs = 0:npc_cow_moon 1:npc_cow_static 2:npc_cow_mirror
+items = 0:moon_milk
+trip = 0.5

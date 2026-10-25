@@ -26,7 +26,7 @@ public:
     void run();
 
 private:
-    enum class State { Title, Exploring, InDialogue, InventoryOpen, InDuel };
+    enum class State { Title, Exploring, InDialogue, InventoryOpen, InDuel, Cutscene };
 
     // fromDir is the direction the player travelled to get here (spawns them
     // at the matching door); nullptr = use explicit/default position.
@@ -45,6 +45,8 @@ private:
     void renderToast();
     void toast(std::string text, double seconds = 3.0) { toast_ = std::move(text); toastTime_ = seconds; }
     void finishDuel();
+    void updateSpecialTiles();
+    void renderCutscene(int camX, int camY, float zoom);
 
     bool hasFlag(const std::string& f) const { return flags_.contains(f); }
     void setFlag(const std::string& f) { flags_.insert(f); }
@@ -88,6 +90,15 @@ private:
     Facing lastFacing_ = Facing::Down;
     uint32_t lastBeat_ = 0;
     double beatPulse_ = 0;   // 1 on a beat, decays to 0
+
+    // Tractor-beam cutscene between rooms.
+    double cutTime_ = 0;
+    std::string cutTarget_;
+    Direction cutDir_ = Direction::North;
+    static constexpr double kBeamSeconds = 2.8;
+
+    double entryX_ = 0, entryY_ = 0;  // where the player entered (void fallback)
+    bool onWarp_ = false;             // standing on the warp we arrived on
 
     std::string toast_;      // short centered message (doors, rewards)
     double toastTime_ = 0;

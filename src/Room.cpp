@@ -68,6 +68,11 @@ std::string Room::transitionTo(Direction d) const {
     return it != transitions_.end() ? it->second : std::string{};
 }
 
+std::string Room::lockFor(Direction d) const {
+    auto it = locks_.find(d);
+    return it != locks_.end() ? it->second : std::string{};
+}
+
 void Room::removeEntity(const std::string& id) {
     std::erase_if(entities_, [&](const auto& e) { return e->id() == id; });
 }
@@ -85,12 +90,16 @@ void Room::update(double dt) {
 }
 
 void Room::defaultSpawn(int& tx, int& ty) const {
-    for (int ty2 = 1; ty2 < height_ - 1; ++ty2)
-        for (int tx2 = 1; tx2 < width_ - 1; ++tx2)
-            if (tileAt(tx2, ty2) == Tile::Floor && !entityAt(tx2, ty2)) {
+    for (int ty2 = 1; ty2 < height_ - 1; ++ty2) {
+        for (int tx2 = 1; tx2 < width_ - 1; ++tx2) {
+            Tile t = tileAt(tx2, ty2);
+            bool standable = t == Tile::Floor || t == Tile::Grass || t == Tile::Stairs || t == Tile::Mirror;
+            if (standable && !entityAt(tx2, ty2)) {
                 tx = tx2; ty = ty2;
                 return;
             }
+        }
+    }
     tx = width_ / 2;
     ty = height_ / 2;
 }

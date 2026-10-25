@@ -1,0 +1,5 @@
+# Up loops forever (north leads back to the bottom). The way on is down.
+music_mood = dread_diminished
+transitions = north:infinite_stair south:tessellation_temple west:fractal_library
+npcs = 0:npc_stair_counter 1:npc_descending_monk
+trip = 0.7

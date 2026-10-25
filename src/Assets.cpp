@@ -218,6 +218,26 @@ void paintTile(SDL_Surface* surf, const std::string& name) {
                 double theta = std::atan2(cy, cx);
                 double arm = std::sin(3 * theta + 1.7 * std::log(r + 1) * 3);
                 v = 0.4 + 0.45 * std::max(0.0, arm);
+            } else if (name == "tile_void") {
+                // Deep space: faint rings falling inward plus a few fixed stars.
+                v = 0.04 + 0.2 * std::max(0.0, std::sin(r * 1.1)) * std::max(0.0, 1 - r / 18);
+                uint32_t hsh = static_cast<uint32_t>(x * 73856093 ^ y * 19349663);
+                if (hsh % 61 == 0) v = 1.0;
+            } else if (name == "tile_mirror") {
+                // Polished glass: bright with diagonal shine streaks.
+                double streak = std::fmod(fx + fy, 16.0);
+                v = 0.72 + (streak < 2.5 ? 0.28 : 0.0) + (std::fabs(fx - fy) < 0.8 ? 0.15 : 0.0);
+                if (x < 1 || y < 1) v = 1.0;
+            } else if (name == "tile_warp") {
+                // Concentric diamonds converging on the center.
+                double m = std::fabs(cx) + std::fabs(cy);
+                v = std::fmod(m, 6.0) < 2.0 ? 1.0 : 0.3;
+                if (m < 3) v = 1.0;
+            } else if (name == "tile_stairs") {
+                // Steps: a lit edge every 8px, shading toward the back of each tread.
+                int tread = y % 8;
+                v = tread < 2 ? 0.95 : 0.45 + 0.05 * tread;
+                if (x < 1 || x > 30) v = 0.3;
             } else {  // tile_door: vesica piscis eye with a pupil and rays
                 double a = std::hypot(fx - 10, fy - 16), b = std::hypot(fx - 22, fy - 16);
                 bool lens = a < 12 && b < 12;

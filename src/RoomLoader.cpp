@@ -89,6 +89,10 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
             case '.': t = Tile::Floor; break;
             case '~': t = Tile::Grass; break;
             case '>': t = Tile::Door; break;
+            case 'V': t = Tile::Void; break;
+            case 'M': t = Tile::Mirror; break;
+            case '^': t = Tile::Warp; break;
+            case '=': t = Tile::Stairs; break;
             case 'N': npcSlots.push_back({tx, ty}); break;
             case 'I': itemSlots.push_back({tx, ty}); break;
             case ' ': t = Tile::Wall; break;  // padding outside the room
@@ -131,6 +135,23 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
             }
             if (key == "trip") room->setTrip(v);
             else room->setKaleidoscope(v);
+        } else if (key == "locks" || key == "beam") {
+            // locks = north:flag_name    beam = north south
+            std::istringstream ss(value);
+            std::string tok;
+            while (ss >> tok) {
+                auto colon = tok.find(':');
+                Direction dir;
+                if (key == "locks" && colon != std::string::npos
+                    && parseDirection(tok.substr(0, colon), dir))
+                    room->setLock(dir, tok.substr(colon + 1));
+                else if (key == "beam" && parseDirection(tok, dir))
+                    room->setBeam(dir);
+                else
+                    std::cerr << "[rooms] " << name << ": bad " << key << " '" << tok << "'\n";
+            }
+        } else if (key == "void_to") {
+            room->setVoidTo(value);
         } else if (key == "transitions") {
             std::istringstream ss(value);
             std::string tok;

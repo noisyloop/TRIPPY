@@ -1,0 +1,6 @@
+# Very quiet. Very heavy. Very you.
+music_mood = melancholy_a_minor
+transitions = south:waiting_room
+npcs = 0:boss_weight
+trip = 0.9
+kaleidoscope = 0.3

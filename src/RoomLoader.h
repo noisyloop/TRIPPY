@@ -6,10 +6,12 @@
 #include "Room.h"
 
 // Loads assets/maps/<name>.txt (tile grid) + assets/maps/<name>.meta
-// (key=value: music_mood, transitions, npcs, items, on_enter_flag).
+// (key=value: music_mood, transitions, npcs, items, on_enter_flag, trip,
+// kaleidoscope, locks, beam, void_to).
 //
 // Map characters:
 //   # wall   . floor   ~ tall grass   > door   N npc-slot   I item-slot
+//   V void   M mirror floor   ^ warp   = stairs
 // N and I slots are numbered 0,1,2... in reading order and bound to ids via
 // the meta file, e.g.  npcs = 0:npc_mother 1:npc_shadow
 class RoomLoader {

@@ -40,6 +40,7 @@ struct DuelScript {
     std::vector<DuelRound> rounds;
     std::string victory;
     std::string rewardItem;  // optional
+    std::string afterRoom;   // optional: room to wake up in after winning
 };
 
 // Registered in code by boss id ("boss_*"). Null if unknown.

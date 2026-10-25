@@ -1,0 +1,6 @@
+# Rows of chairs between moments. The Officer guards the door to now.
+music_mood = tense_chromatic
+transitions = north:weight_chamber south:tessellation_temple
+npcs = 0:boss_customs 1:npc_number_taker 2:npc_patient_light
+locks = north:beat_boss_customs
+trip = 0.45

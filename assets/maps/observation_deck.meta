@@ -1,0 +1,7 @@
+# Mother-of-Saucers holds court. North (the beam up) opens once she's won over.
+music_mood = dream_lydian
+transitions = south:mothership_corridor north:fractal_library
+npcs = 0:boss_mother_of_saucers 1:ufo_drone_a 2:ufo_drone_b
+locks = north:beat_boss_mother_of_saucers
+beam = north
+trip = 0.6
