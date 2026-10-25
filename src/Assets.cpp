@@ -86,7 +86,7 @@ void paintGrid(SDL_Surface* surf, const char* const rows[16],
 
 // The hero: a little green alien. "player_<dir>_<frame>"; anything else
 // starting with "player" gets the down-facing idle pose.
-void paintAlien(SDL_Surface* surf, const std::string& name) {
+void paintAlien(SDL_Surface* surf, const std::string& name, bool shadow = false) {
     const bool up = name.find("_up") != std::string::npos;
     const bool left = name.find("_left") != std::string::npos;
     const bool right = name.find("_right") != std::string::npos;
@@ -126,6 +126,14 @@ void paintAlien(SDL_Surface* surf, const std::string& name) {
     if (step) {
         rows[14] = "....gg.....gg...";
         rows[15] = "...gg......gg...";
+    }
+    if (shadow) {  // the Weight: you, but heavy, dark and staring
+        paintGrid(surf, rows, {
+            {'g', {58, 30, 92, 255}}, {'K', {255, 240, 255, 255}}, {'W', {255, 80, 200, 255}},
+            {'a', {90, 60, 130, 255}}, {'p', {255, 255, 255, 255}}, {'b', {30, 16, 52, 255}},
+            {'y', {255, 240, 255, 255}}, {'r', {40, 20, 66, 255}}, {'c', {40, 20, 66, 255}},
+        });
+        return;
     }
     paintGrid(surf, rows, {
         {'g', {120, 255, 150, 255}}, {'K', {12, 6, 30, 255}}, {'W', {255, 255, 255, 255}},
@@ -275,6 +283,64 @@ void paintGem(SDL_Surface* surf, const std::string& name) {
     }
 }
 
+// Bosses get their own shapes; the game draws them 2x in rooms and huge in duels.
+void paintBoss(SDL_Surface* surf, const std::string& name) {
+    if (name.find("saucer") != std::string::npos) {
+        // Mother-of-Saucers: a golden saucer wearing a crown of eyes.
+        paintSaucer(surf, SDL_Color{255, 190, 80, 255});
+        for (int i = 0; i < 5; ++i) {
+            SDL_Rect spike{6 + i * 5, 2 + (i % 2) * 2, 2, 5};
+            SDL_FillRect(surf, &spike, SDL_MapRGBA(surf->format, 255, 90, 220, 255));
+        }
+        for (int ex : {12, 16, 20}) {
+            SDL_Rect eye{ex - 1, 8, 3, 3}, pupil{ex, 9, 1, 1};
+            SDL_FillRect(surf, &eye, SDL_MapRGBA(surf->format, 255, 255, 255, 255));
+            SDL_FillRect(surf, &pupil, SDL_MapRGBA(surf->format, 10, 4, 24, 255));
+        }
+        return;
+    }
+    if (name.find("weight") != std::string::npos) {
+        paintAlien(surf, "player_down_0", /*shadow=*/true);
+        return;
+    }
+    if (name.find("choir") != std::string::npos) {
+        // Three overlapping mandala heads, each with a different petal count.
+        static const int heads[3][3] = {{10, 13, 5}, {22, 13, 7}, {16, 21, 6}};
+        for (const auto& hd : heads)
+            for (int y = 0; y < 32; ++y)
+                for (int x = 0; x < 32; ++x) {
+                    double cx = x + 0.5 - hd[0], cy = y + 0.5 - hd[1];
+                    double r = std::hypot(cx, cy), th = std::atan2(cy, cx);
+                    double edge = 6.5 + 2.5 * std::cos(hd[2] * th);
+                    if (r > edge) continue;
+                    putPixel(surf, x, y, hsvColor(hd[2] * 50 + r * 25, 0.8, edge - r < 1 ? 1.0 : 0.8));
+                }
+        for (const auto& hd : heads) {
+            SDL_Rect eye{hd[0] - 1, hd[1] - 1, 3, 3}, pupil{hd[0], hd[1], 1, 1};
+            SDL_FillRect(surf, &eye, SDL_MapRGBA(surf->format, 255, 255, 255, 255));
+            SDL_FillRect(surf, &pupil, SDL_MapRGBA(surf->format, 10, 4, 24, 255));
+        }
+        return;
+    }
+    // Customs Officer: a filing-cabinet head with a grid of nine eyes,
+    // a peaked cap and a big rubber stamp.
+    auto fill = [&](int x, int y, int w, int h, SDL_Color c) {
+        SDL_Rect rr{x, y, w, h};
+        SDL_FillRect(surf, &rr, SDL_MapRGBA(surf->format, c.r, c.g, c.b, c.a));
+    };
+    fill(7, 2, 18, 4, {40, 60, 150, 255});     // cap
+    fill(5, 5, 22, 2, {20, 30, 90, 255});      // brim
+    fill(7, 7, 18, 16, {150, 160, 175, 255});  // head
+    for (int i = 0; i < 9; ++i) {
+        int ex = 10 + (i % 3) * 5, ey = 9 + (i / 3) * 4;
+        fill(ex, ey, 3, 3, {255, 255, 255, 255});
+        fill(ex + 1, ey + 1, 1, 1, {10, 4, 24, 255});
+    }
+    fill(9, 23, 14, 7, {40, 60, 150, 255});    // uniform
+    fill(24, 18, 4, 6, {120, 70, 40, 255});    // stamp handle
+    fill(22, 24, 8, 3, {230, 40, 80, 255});    // stamp
+}
+
 }  // namespace
 
 Assets::Assets(Renderer& renderer) : renderer_(renderer), root_(findAssetRoot()) {
@@ -320,9 +386,10 @@ SDL_Texture* Assets::makePlaceholder(const std::string& name) {
     const SDL_Color body = colorForName(name);
 
     // Pixel-art placeholders for the cast that needs to read as a shape.
-    if (name.rfind("player", 0) == 0 || name.rfind("ufo_", 0) == 0) {
+    if (name.rfind("player", 0) == 0 || name.rfind("ufo_", 0) == 0 || name.rfind("boss_", 0) == 0) {
         SDL_FillRect(surf.get(), nullptr, SDL_MapRGBA(surf->format, 0, 0, 0, 0));
         if (name[0] == 'p') paintAlien(surf.get(), name);
+        else if (name[0] == 'b') paintBoss(surf.get(), name);
         else paintSaucer(surf.get(), body);
         return SDL_CreateTextureFromSurface(renderer_.sdl(), surf.get());
     }

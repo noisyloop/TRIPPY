@@ -32,6 +32,9 @@ struct DialogueTree {
     int altStart = -1;
 };
 
+// Greedy word wrap against a pixel width (shared with the boss duels).
+std::vector<std::string> wrapText(Assets& assets, const std::string& text, int maxWidth);
+
 // Trees live in code for now; looked up by NPC id. Null if unknown.
 const DialogueTree* dialogueForNpc(const std::string& npcId);
 

@@ -7,6 +7,7 @@
 #include "Assets.h"
 #include "Audio.h"
 #include "Dialogue.h"
+#include "Duel.h"
 #include "Input.h"
 #include "Inventory.h"
 #include "Player.h"
@@ -25,7 +26,7 @@ public:
     void run();
 
 private:
-    enum class State { Title, Exploring, InDialogue, InventoryOpen };
+    enum class State { Title, Exploring, InDialogue, InventoryOpen, InDuel };
 
     // fromDir is the direction the player travelled to get here (spawns them
     // at the matching door); nullptr = use explicit/default position.
@@ -41,6 +42,9 @@ private:
     void renderTitle();
     void renderWorld(double fxTrip, double pulse);
     void renderStatusBar();
+    void renderToast();
+    void toast(std::string text, double seconds = 3.0) { toast_ = std::move(text); toastTime_ = seconds; }
+    void finishDuel();
 
     bool hasFlag(const std::string& f) const { return flags_.contains(f); }
     void setFlag(const std::string& f) { flags_.insert(f); }
@@ -62,6 +66,7 @@ private:
     Player player_;
     Inventory inventory_;
     DialogueBox dialogue_;
+    Duel duel_;
     std::unique_ptr<Room> room_;
     std::unordered_set<std::string> flags_;
 
@@ -83,6 +88,9 @@ private:
     Facing lastFacing_ = Facing::Down;
     uint32_t lastBeat_ = 0;
     double beatPulse_ = 0;   // 1 on a beat, decays to 0
+
+    std::string toast_;      // short centered message (doors, rewards)
+    double toastTime_ = 0;
 
     static constexpr double kTitleHoldSeconds = 0.8;
 };

@@ -147,6 +147,8 @@ const std::unordered_map<std::string, DialogueTree>& dialogueRegistry() {
     return trees;
 }
 
+}  // namespace
+
 // Greedy word wrap against a pixel width.
 std::vector<std::string> wrapText(Assets& assets, const std::string& text, int maxWidth) {
     std::vector<std::string> lines;
@@ -166,7 +168,6 @@ std::vector<std::string> wrapText(Assets& assets, const std::string& text, int m
     return lines;
 }
 
-}  // namespace
 
 const DialogueTree* dialogueForNpc(const std::string& npcId) {
     const auto& reg = dialogueRegistry();

@@ -167,7 +167,11 @@ void Game::update(double dt) {
 
     // Energy builds over ~2s of walking, drains over ~1.5s of standing.
     const bool walking = state_ == State::Exploring && player_.moving();
-    musicEnergy_ = std::clamp(musicEnergy_ + (walking ? dt / 2.0 : -dt / 1.5), 0.0, 1.0);
+    if (state_ == State::InDuel)  // duels keep the band playing
+        musicEnergy_ += (0.7 - musicEnergy_) * std::min(1.0, dt);
+    else
+        musicEnergy_ = std::clamp(musicEnergy_ + (walking ? dt / 2.0 : -dt / 1.5), 0.0, 1.0);
+    toastTime_ = std::max(0.0, toastTime_ - dt);
     audio_.setMotion(static_cast<float>(musicEnergy_), static_cast<int>(player_.facing()), turns_);
     if (uint32_t b = audio_.beatCount(); b != lastBeat_) {
         lastBeat_ = b;
@@ -212,6 +216,12 @@ void Game::update(double dt) {
     case State::InventoryOpen:
         if (input_.inventoryPressed() || input_.interactPressed())
             state_ = State::Exploring;
+        break;
+    case State::InDuel:
+        duel_.update(dt, input_);
+        room_->update(dt);
+        if (!duel_.active())
+            finishDuel();
         break;
     }
 }
@@ -260,6 +270,12 @@ void Game::tryInteract() {
     int tx, ty;
     player_.facingTile(tx, ty);
     Entity* e = room_->entityAt(tx, ty);
+    if (!e) {
+        // Bosses are drawn twice as big, so they answer from two tiles away.
+        int fx = tx + (tx - player_.tileX()), fy = ty + (ty - player_.tileY());
+        Entity* far = room_->entityAt(fx, fy);
+        if (far && far->id().rfind("boss_", 0) == 0) e = far;
+    }
     if (!e)
         e = room_->entityAt(player_.tileX(), player_.tileY());
     if (!e) {
@@ -267,6 +283,18 @@ void Game::tryInteract() {
         return;
     }
 
+    if (e->kind() == EntityKind::Npc && e->id().rfind("boss_", 0) == 0
+        && !hasFlag("beat_" + e->id())) {
+        if (const DuelScript* script = duelForBoss(e->id())) {
+            Duel::Effects fx;
+            fx.sfx = [this](const std::string& n) { audio_.playSfx(n); };
+            fx.beatCount = [this] { return audio_.beatCount(); };
+            duel_.start(e->id(), *script, std::move(fx));
+            audio_.playMood(script->mood);
+            state_ = State::InDuel;
+            return;
+        }
+    }
     if (e->kind() == EntityKind::Npc) {
         const DialogueTree* tree = dialogueForNpc(e->id());
         if (!tree) {
@@ -285,6 +313,23 @@ void Game::tryInteract() {
         dialogue_.start(*tree, std::move(fx));
         state_ = State::InDialogue;
     }
+}
+
+void Game::finishDuel() {
+    state_ = State::Exploring;
+    audio_.playMood(room_->mood());
+    const std::string id = duel_.bossId();
+    if (!duel_.takeVictory())
+        return;
+    setFlag("beat_" + id);
+    const DuelScript* script = duelForBoss(id);
+    if (script && !script->rewardItem.empty()) {
+        inventory_.add(script->rewardItem);
+        setFlag("got_" + script->rewardItem);
+        toast("received: " + Inventory::displayName(script->rewardItem));
+    }
+    audio_.playSfx("pickup");
+    save();
 }
 
 void Game::pickupItemsUnderPlayer() {
@@ -306,7 +351,9 @@ void Game::render() {
     }
 
     const MoodPalette pal = paletteFor(room_->mood());
-    const double fxTrip = calm() ? std::min(trip_, 0.12) : trip_;
+    double fxTrip = calm() ? std::min(trip_, 0.12) : trip_;
+    if (state_ == State::InDuel && !calm())  // harmony turns the room up
+        fxTrip = std::max(fxTrip, 0.35 + 0.6 * duel_.harmony());
     const double pulse = calm() ? 0.0 : beatPulse_;
     const SDL_Color bg = hsvColor(hueOf(pal.background) + worldTime_ * 20.0 * fxTrip, 0.6, 0.12);
     renderer_.clear(bg);
@@ -338,8 +385,11 @@ void Game::render() {
                 static_cast<int>((player_.x() + kTile / 2 - camX) * zoom),
                 static_cast<int>((player_.y() + kTile / 2 - camY) * zoom), bg);
 
+    if (state_ == State::InDuel)
+        duel_.render(renderer_, assets_, assets_.sprite(duel_.bossId()), worldTime_);
     if (state_ == State::InventoryOpen)
         inventory_.render(renderer_, assets_);
+    renderToast();
     if (dialogue_.active())
         dialogue_.render(renderer_, assets_);
     renderStatusBar();
@@ -437,7 +487,11 @@ void Game::renderWorld(double fxTrip, double pulse) {
         e->drawOffset(ox, oy);
         int px = e->tileX() * kTile + static_cast<int>(ox);
         int py = e->tileY() * kTile + static_cast<int>(oy);
-        if (e->kind() == EntityKind::Npc) {
+        if (e->id().rfind("boss_", 0) == 0) {
+            double bob = std::sin(worldTime_ * 1.4) * 3.0;
+            renderer_.drawSprite(assets_.sprite(e->sprite()), px - kTile / 2,
+                                 py - kTile + static_cast<int>(bob), kTile * 2, kTile * 2);
+        } else if (e->kind() == EntityKind::Npc) {
             double bob = std::sin(worldTime_ * 2.2 + e->tileX()) * 2.0;
             renderer_.drawSprite(assets_.sprite(e->sprite()), px,
                                  py + static_cast<int>(bob), kTile, kTile);
@@ -504,6 +558,7 @@ void Game::renderStatusBar() {
     case State::Title:         break;  // no status bar on the title screen
     case State::InDialogue:    hint = "E: continue"; break;
     case State::InventoryOpen: hint = "I: close"; break;
+    case State::InDuel:        hint = "E: answer   arrows: echo / beat"; break;
     case State::Exploring: {
         int tx, ty;
         player_.facingTile(tx, ty);
@@ -518,4 +573,14 @@ void Game::renderStatusBar() {
     renderer_.drawText(assets_, right,
                        renderer_.width() - renderer_.textWidth(assets_, right) - 14,
                        textY, SDL_Color{200, 190, 215, 255});
+}
+
+void Game::renderToast() {
+    if (toastTime_ <= 0 || toast_.empty()) return;
+    const int w = renderer_.textWidth(assets_, toast_) + 32;
+    const Uint8 a = static_cast<Uint8>(std::min(1.0, toastTime_) * 230);
+    const SDL_Rect box{renderer_.width() / 2 - w / 2, 14, w, assets_.fontHeight() + 14};
+    renderer_.fillRect(box, SDL_Color{16, 10, 28, a});
+    renderer_.outlineRect(box, hsvColor(worldTime_ * 90, 0.7, 1.0, a));
+    renderer_.drawText(assets_, toast_, box.x + 16, box.y + 7, SDL_Color{235, 231, 240, a});
 }

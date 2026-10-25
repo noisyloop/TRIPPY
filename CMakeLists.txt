@@ -83,6 +83,7 @@ add_executable(trippy
   src/NPC.cpp
   src/UFO.cpp
   src/TripFX.cpp
+  src/Duel.cpp
   src/Dialogue.cpp
   src/Inventory.cpp
   src/SaveGame.cpp
