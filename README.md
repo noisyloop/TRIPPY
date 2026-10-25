@@ -6,9 +6,12 @@ a jeweled being in a temple folds greetings out of light. Small rooms, moody
 music, dialogue that remembers what you said. (Formerly SORRY — the original
 bedroom/hallway/garden rooms are still the starting path.)
 
-All music is **synthesized in code** — a four-voice chiptune generator makes a
-deterministic looping track per "mood", and rooms crossfade between moods as
-you walk. Missing sprites are generated at runtime as labeled colored squares,
+All music is **synthesized in code** and plays along with you: every run and
+every room visit rolls a new tune within the room's mood (scale, root,
+tempo, pattern). Walking speeds it up and fills in the melody, turning
+changes the arpeggio shape and octave, and standing still slows it down and
+lets the melody dissolve into a breathing drone. The visuals pulse on its
+beat. Missing sprites are generated at runtime as labeled colored squares,
 so the game is fully playable before a single asset exists.
 
 ## Install (no build needed)
@@ -183,15 +186,24 @@ Moods live in `moodTable()` in `src/ChiptuneSynth.cpp`:
 
 ```cpp
 // name              scale (semitones)      root bpm  seed   duty  bright noise
-{"neon_waltz",       {0, 2, 3, 5, 7, 9, 10}, 56, 90, 0x1234, 0.25f, 0.9f, 2},
+{"neon_waltz",       {0, 2, 3, 5, 7, 9, 10}, 56, 90, 0x1234, 0.25f, 0.9f, 2, {dorian, minorPent}},
 ```
 
 - `scale`: semitone offsets from the root; melody, bass and arps only ever
   use these, so the scale *is* the mood's harmonic character.
 - `root`: MIDI note (57 = A3). Lower = darker.
 - `bpm`: tempo; also nudges melody density (faster moods play busier lines).
-- `seed`: any number — patterns are generated deterministically from it, so
-  a mood always sounds the same. Change the seed to reroll the tune.
+- `seed`: any number — mixed with a per-run, per-visit seed, so a mood
+  sounds different on every visit but keeps its character.
+- alt scales (last column): other scales a visit may pick instead of
+  `scale`. Each visit also shifts the root ±3 semitones and tempo ±8%.
+
+Live controls (`ChiptuneSynth::setMotion`, fed by `Game::update`): energy
+0..1 builds over ~2s of walking and drains over ~1.5s standing still. It
+scales tempo 0.6x–1.2x, how many melody candidate notes play, arp/hat
+levels, and crossfades melody ↔ drone. Each direction change cycles the arp
+through four shapes; facing up/right lifts it an octave. The device stays
+mono 44.1 kHz int16 (see "Audio format switch").
 - `duty`: melody square-wave duty cycle. 0.5 = hollow/round, 0.25 = classic
   NES lead, 0.125 = thin and buzzy.
 - `brightness`: overall level trim. `noise`: 0–4 percussion busyness
@@ -245,12 +257,13 @@ drop any `.ttf` in `assets/fonts/` (first file found is used, 18pt).
 **Musician** — you have two options, both zero-code:
 
 1. *Tweak the synth*: edit the mood rows in `src/ChiptuneSynth.cpp`
-   (scale/root/bpm/seed/duty) — it's one line per mood and rebuilds in
-   seconds. Rerolling seeds until the melody lands is a legitimate workflow.
+   (scale/root/bpm/seed/duty/alt scales) — it's one line per mood and
+   rebuilds in seconds.
 2. *Replace with recordings*: drop a loopable track named after the mood into
    `assets/music/` — e.g. `assets/music/melancholy_a_minor.ogg` (also accepts
    `.wav`, `.mp3`, `.flac`). If that file exists, it plays (looped, 1.5s
-   fade-in) instead of the synth; delete it and the synth takes over again.
+   fade-in) instead of the synth (recordings don't react to movement or
+   drive the beat pulse); delete it and the synth takes over again.
    Note the mixer runs mono at 44.1kHz — stereo files will be downmixed by
    SDL_mixer, so master accordingly.
 

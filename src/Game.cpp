@@ -145,6 +145,16 @@ void Game::update(double dt) {
     if (input_.escapePressed())
         running_ = false;
 
+    // Energy builds over ~2s of walking, drains over ~1.5s of standing.
+    const bool walking = state_ == State::Exploring && player_.moving();
+    musicEnergy_ = std::clamp(musicEnergy_ + (walking ? dt / 2.0 : -dt / 1.5), 0.0, 1.0);
+    audio_.setMotion(static_cast<float>(musicEnergy_), static_cast<int>(player_.facing()), turns_);
+    if (uint32_t b = audio_.beatCount(); b != lastBeat_) {
+        lastBeat_ = b;
+        beatPulse_ = 1.0;
+    }
+    beatPulse_ = std::max(0.0, beatPulse_ - dt * 4.0);
+
     const double ease = std::min(1.0, dt * 1.5);
     trip_ += (room_->trip() - trip_) * ease;
     kaleido_ += (room_->kaleidoscope() - kaleido_) * ease;
@@ -202,6 +212,10 @@ void Game::updateTitle(double dt) {
 
 void Game::updateExploring(double dt) {
     player_.update(dt, input_, *room_);
+    if (player_.moving() && player_.facing() != lastFacing_) {
+        lastFacing_ = player_.facing();
+        ++turns_;
+    }
     room_->update(dt);
     pickupItemsUnderPlayer();
 
@@ -285,7 +299,7 @@ void Game::render() {
 
     tripFx_.begin(bg);
     renderWorld();
-    tripFx_.end(worldTime_, trip_, kaleido_,
+    tripFx_.end(worldTime_, trip_ * (0.75 + 0.5 * beatPulse_), kaleido_,
                 static_cast<int>(player_.x()) + kTile / 2 - camX,
                 static_cast<int>(player_.y()) + kTile / 2 - camY, bg);
 
@@ -349,6 +363,8 @@ void Game::renderWorld() {
             case Tile::Grass: spriteName = "tile_grass"; base = pal.grass; val = 0.9; break;
             case Tile::Door:  spriteName = "tile_door";  base = pal.door;  val = 1.0; break;
             }
+            // Tiles flash brighter on the beat.
+            val *= 1.0 - 0.3 * trip_ * (1.0 - beatPulse_);
             SDL_Color tint = trippyTint(base, val, trip_, worldTime_, tx, ty);
             const bool real = !assets_.spriteIsPlaceholder(spriteName);
             if (real)

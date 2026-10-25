@@ -72,5 +72,12 @@ private:
     std::deque<Ghost> trail_;  // player afterimages, newest first
     double trailClock_ = 0;
 
+    // Music follows movement; visuals pulse on the synth's beat.
+    double musicEnergy_ = 0;
+    int turns_ = 0;
+    Facing lastFacing_ = Facing::Down;
+    uint32_t lastBeat_ = 0;
+    double beatPulse_ = 0;   // 1 on a beat, decays to 0
+
     static constexpr double kTitleHoldSeconds = 0.8;
 };
