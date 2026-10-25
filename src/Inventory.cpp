@@ -30,7 +30,7 @@ void Inventory::add(const std::string& itemId) {
 }
 
 void Inventory::render(Renderer& r, Assets& assets) const {
-    const SDL_Rect panel{Renderer::kWindowW / 2 - 180, 80, 360, 320};
+    const SDL_Rect panel{r.width() / 2 - 180, 80, 360, 320};
     r.fillRect(panel, SDL_Color{16, 10, 28, 240});
     r.outlineRect(panel, SDL_Color{255, 179, 71, 255});
 

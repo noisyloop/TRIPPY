@@ -21,15 +21,19 @@ class TripFX {
 public:
     explicit TripFX(Renderer& renderer);
 
-    bool begin(SDL_Color clear);
+    // zoom scales world drawing (half steps keep 2px art pixels whole).
+    bool begin(SDL_Color clear, float zoom = 1.0f);
+    bool available() const { return scene_ != nullptr; }
     // warp, kaleido in 0..1. focus = player's screen position (kaleido center).
     void end(double time, double warp, double kaleido, int focusX, int focusY,
              SDL_Color clear);
 
 private:
     void drawKaleidoscope(double time, double amount, int focusX, int focusY);
+    void ensureTargets();
 
     Renderer& renderer_;
+    int w_ = 0;
     TexturePtr scene_;
     TexturePtr post_;
     bool active_ = false;

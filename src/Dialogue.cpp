@@ -237,7 +237,7 @@ void DialogueBox::render(Renderer& r, Assets& assets) const {
     const auto& n = node();
 
     const int boxH = 140;
-    const SDL_Rect box{12, Renderer::kViewH - boxH - 12, Renderer::kWindowW - 24, boxH};
+    const SDL_Rect box{12, Renderer::kViewH - boxH - 12, r.width() - 24, boxH};
     r.fillRect(box, SDL_Color{16, 10, 28, 235});
     r.outlineRect(box, SDL_Color{214, 62, 106, 255});  // neon pink trim
 

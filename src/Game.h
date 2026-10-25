@@ -39,11 +39,16 @@ private:
     void pickupItemsUnderPlayer();
     void render();
     void renderTitle();
-    void renderWorld();
+    void renderWorld(double fxTrip, double pulse);
     void renderStatusBar();
 
     bool hasFlag(const std::string& f) const { return flags_.contains(f); }
     void setFlag(const std::string& f) { flags_.insert(f); }
+
+    // Calm mode (photosensitivity): persisted as the "opt_calm" flag.
+    bool calm() const { return hasFlag("opt_calm"); }
+    void toggleCalm();
+    void handleGlobalKeys();
 
     Renderer renderer_;
     Assets assets_;

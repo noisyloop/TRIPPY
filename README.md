@@ -107,6 +107,8 @@ rather than erroring.
 | E / Space | Interact, advance or skip dialogue |
 | Up/Down | Pick a dialogue choice |
 | I | Open / close inventory |
+| F / F11 / ⌘F / Alt+Enter | Toggle fullscreen (the window is also resizable) |
+| C | Calm mode: no flashing, warp or kaleidoscope, gentle colors (saved) |
 | Esc | Quit (autosaves) |
 
 ## Project layout

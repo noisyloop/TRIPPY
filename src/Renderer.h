@@ -18,9 +18,13 @@ class Assets;
 
 // Thin SDL wrapper: owns the window/renderer, offers draw helpers.
 // World-space draws take a camera offset; UI draws are in screen space.
+//
+// Logical height is fixed at kWindowH; logical width follows the window's
+// aspect ratio (resizable / fullscreen), so the playfield fills the window
+// instead of letterboxing. Query width() rather than assuming 800.
 class Renderer {
 public:
-    static constexpr int kWindowW = 800;
+    static constexpr int kWindowW = 800;   // initial width; see width()
     static constexpr int kWindowH = 600;
     static constexpr int kStatusBarH = 40;
     static constexpr int kViewH = kWindowH - kStatusBarH;  // playfield height
@@ -28,6 +32,10 @@ public:
     Renderer();  // throws std::runtime_error on failure
 
     SDL_Renderer* sdl() const { return renderer_.get(); }
+
+    int width() const { return width_; }        // logical width, tracks aspect
+    void handleWindowEvent(const SDL_Event& e);  // resize -> new logical width
+    void toggleFullscreen();
 
     void clear(SDL_Color c);
     void present();
@@ -55,4 +63,7 @@ private:
     RendererPtr renderer_;
     int camX_ = 0;
     int camY_ = 0;
+    int width_ = kWindowW;
+
+    void updateLogicalSize();
 };

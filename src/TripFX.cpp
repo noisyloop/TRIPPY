@@ -4,7 +4,6 @@
 #include <cmath>
 
 namespace {
-constexpr int kW = Renderer::kWindowW;
 constexpr int kH = Renderer::kViewH;
 constexpr double kPi = 3.14159265358979323846;
 
@@ -61,27 +60,42 @@ SDL_Color lerpColor(SDL_Color a, SDL_Color b, double t) {
 }
 
 TripFX::TripFX(Renderer& renderer) : renderer_(renderer) {
+    ensureTargets();
+}
+
+// (Re)creates the offscreen textures when the logical width changes.
+void TripFX::ensureTargets() {
+    if (w_ == renderer_.width() && scene_) return;
     SDL_Renderer* r = renderer_.sdl();
+    w_ = renderer_.width();
+    scene_.reset();
+    post_.reset();
     if (!SDL_RenderTargetSupported(r)) return;
     for (TexturePtr* t : {&scene_, &post_}) {
-        t->reset(SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, kW, kH));
+        t->reset(SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w_, kH));
         if (*t) SDL_SetTextureBlendMode(t->get(), SDL_BLENDMODE_BLEND);
     }
     if (!scene_ || !post_) { scene_.reset(); post_.reset(); }
 }
 
-bool TripFX::begin(SDL_Color clear) {
+bool TripFX::begin(SDL_Color clear, float zoom) {
+    ensureTargets();
     active_ = scene_ && SDL_SetRenderTarget(renderer_.sdl(), scene_.get()) == 0;
-    if (active_) renderer_.clear(clear);
+    if (active_) {
+        renderer_.clear(clear);
+        SDL_RenderSetScale(renderer_.sdl(), zoom, zoom);
+    }
     return active_;
 }
 
 void TripFX::drawKaleidoscope(double time, double amount, int focusX, int focusY) {
+    const int kW = w_;
     // 12 mirrored wedges around the playfield center, each sampling the same
     // wedge of the scene around the player; odd wedges are flipped.
     constexpr int kWedges = 12;
     constexpr double kStep = 2 * kPi / kWedges;
-    constexpr double kSrcR = 250, kDstR = 520;
+    constexpr double kSrcR = 250;
+    const double kDstR = std::hypot(kW / 2.0, kH / 2.0) + 40;
     const double px = std::clamp<double>(focusX, kSrcR, kW - kSrcR);
     const double py = std::clamp<double>(focusY, kH / 2.0 - 30, kH / 2.0 + 30);
     const double rot = time * 0.15, srcRot = -time * 0.1;
@@ -109,7 +123,9 @@ void TripFX::end(double time, double warp, double kaleido, int focusX, int focus
                  SDL_Color clear) {
     if (!active_) return;
     SDL_Renderer* r = renderer_.sdl();
+    SDL_RenderSetScale(r, 1.0f, 1.0f);
     SDL_Texture* src = scene_.get();
+    const int kW = w_;
 
     if (kaleido > 0.01) {
         SDL_SetRenderTarget(r, post_.get());

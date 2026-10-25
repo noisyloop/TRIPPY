@@ -130,8 +130,10 @@ void Game::run() {
 
         input_.beginFrame();
         SDL_Event e;
-        while (SDL_PollEvent(&e))
+        while (SDL_PollEvent(&e)) {
             input_.handleEvent(e);
+            renderer_.handleWindowEvent(e);
+        }
         if (input_.quitRequested())
             running_ = false;
 
@@ -141,9 +143,27 @@ void Game::run() {
     save();  // be kind on quit too
 }
 
+void Game::toggleCalm() {
+    if (calm()) flags_.erase("opt_calm");
+    else setFlag("opt_calm");
+    audio_.playSfx("confirm");
+}
+
+void Game::handleGlobalKeys() {
+    // F / F11 / Cmd+F / Alt+Enter: fullscreen. C: calm mode.
+    const bool cmd = input_.isDown(SDL_SCANCODE_LGUI) || input_.isDown(SDL_SCANCODE_RGUI);
+    const bool alt = input_.isDown(SDL_SCANCODE_LALT) || input_.isDown(SDL_SCANCODE_RALT);
+    if (input_.wasPressed(SDL_SCANCODE_F11) || input_.wasPressed(SDL_SCANCODE_F)
+        || (alt && input_.wasPressed(SDL_SCANCODE_RETURN)) || (cmd && input_.wasPressed(SDL_SCANCODE_F)))
+        renderer_.toggleFullscreen();
+    if (input_.wasPressed(SDL_SCANCODE_C) && state_ != State::InDialogue)
+        toggleCalm();
+}
+
 void Game::update(double dt) {
     if (input_.escapePressed())
         running_ = false;
+    handleGlobalKeys();
 
     // Energy builds over ~2s of walking, drains over ~1.5s of standing.
     const bool walking = state_ == State::Exploring && player_.moving();
@@ -163,7 +183,7 @@ void Game::update(double dt) {
     trailClock_ += dt;
     if (trailClock_ >= 0.04) {
         trailClock_ = 0;
-        const size_t maxGhosts = static_cast<size_t>(2 + trip_ * 10);
+        const size_t maxGhosts = calm() ? 2 : static_cast<size_t>(2 + trip_ * 10);
         if (player_.moving())
             trail_.push_front({player_.x(), player_.y(), player_.spriteName()});
         else if (!trail_.empty())
@@ -197,8 +217,11 @@ void Game::update(double dt) {
 }
 
 void Game::updateTitle(double dt) {
-    // Hold any key to start; releasing resets the fill.
-    if (input_.anyKeyDown()) {
+    // Hold any key to start; releasing resets the fill. C and F are settings,
+    // not "any key".
+    const bool settingKey = input_.isDown(SDL_SCANCODE_C) || input_.isDown(SDL_SCANCODE_F)
+                            || input_.isDown(SDL_SCANCODE_F11);
+    if (input_.anyKeyDown() && !settingKey) {
         titleHold_ += dt;
         if (titleHold_ >= kTitleHoldSeconds) {
             state_ = State::Exploring;
@@ -283,25 +306,37 @@ void Game::render() {
     }
 
     const MoodPalette pal = paletteFor(room_->mood());
-    const SDL_Color bg = hsvColor(hueOf(pal.background) + worldTime_ * 20.0 * trip_, 0.6, 0.12);
+    const double fxTrip = calm() ? std::min(trip_, 0.12) : trip_;
+    const double pulse = calm() ? 0.0 : beatPulse_;
+    const SDL_Color bg = hsvColor(hueOf(pal.background) + worldTime_ * 20.0 * fxTrip, 0.6, 0.12);
     renderer_.clear(bg);
 
+    // Zoom so the room fills the playfield (half steps keep the 2px art
+    // pixels whole), never below 1.5x; bigger rooms scroll.
+    const int viewW = renderer_.width(), viewH = Renderer::kViewH;
+    float zoom = 1.0f;
+    if (tripFx_.available()) {
+        double fit = std::min(double(viewW) / room_->pixelWidth(), double(viewH) / room_->pixelHeight());
+        zoom = static_cast<float>(std::clamp(std::floor(fit * 2.0) / 2.0, 1.5, 3.0));
+    }
+    const int visW = static_cast<int>(viewW / zoom), visH = static_cast<int>(viewH / zoom);
+
     // Camera centered on the player, clamped to the room.
-    int camX = static_cast<int>(player_.x()) + kTile / 2 - Renderer::kWindowW / 2;
-    int camY = static_cast<int>(player_.y()) + kTile / 2 - Renderer::kViewH / 2;
-    camX = std::clamp(camX, 0, std::max(0, room_->pixelWidth() - Renderer::kWindowW));
-    camY = std::clamp(camY, 0, std::max(0, room_->pixelHeight() - Renderer::kViewH));
-    if (room_->pixelWidth() < Renderer::kWindowW)
-        camX = (room_->pixelWidth() - Renderer::kWindowW) / 2;
-    if (room_->pixelHeight() < Renderer::kViewH)
-        camY = (room_->pixelHeight() - Renderer::kViewH) / 2;
+    int camX = static_cast<int>(player_.x()) + kTile / 2 - visW / 2;
+    int camY = static_cast<int>(player_.y()) + kTile / 2 - visH / 2;
+    camX = std::clamp(camX, 0, std::max(0, room_->pixelWidth() - visW));
+    camY = std::clamp(camY, 0, std::max(0, room_->pixelHeight() - visH));
+    if (room_->pixelWidth() < visW)
+        camX = (room_->pixelWidth() - visW) / 2;
+    if (room_->pixelHeight() < visH)
+        camY = (room_->pixelHeight() - visH) / 2;
     renderer_.setCamera(camX, camY);
 
-    tripFx_.begin(bg);
-    renderWorld();
-    tripFx_.end(worldTime_, trip_ * (0.75 + 0.5 * beatPulse_), kaleido_,
-                static_cast<int>(player_.x()) + kTile / 2 - camX,
-                static_cast<int>(player_.y()) + kTile / 2 - camY, bg);
+    tripFx_.begin(bg, zoom);
+    renderWorld(fxTrip, pulse);
+    tripFx_.end(worldTime_, calm() ? 0.0 : fxTrip * (0.75 + 0.5 * pulse), calm() ? 0.0 : kaleido_,
+                static_cast<int>((player_.x() + kTile / 2 - camX) * zoom),
+                static_cast<int>((player_.y() + kTile / 2 - camY) * zoom), bg);
 
     if (state_ == State::InventoryOpen)
         inventory_.render(renderer_, assets_);
@@ -323,10 +358,13 @@ void Game::renderTitle() {
                          static_cast<Uint8>(c.b * flicker), c.a};
     };
 
-    const int cx = Renderer::kWindowW / 2;
+    const int cx = renderer_.width() / 2;
     renderer_.drawTextCentered(assets_, "TRIPPY", cx + 5, 215, SDL_Color{40, 12, 24, 255}, 5);
     renderer_.drawTextCentered(assets_, "TRIPPY", cx, 210, dim(SDL_Color{120, 255, 150, 255}), 5);
-    renderer_.drawTextCentered(assets_, TRIPPY_VERSION, Renderer::kWindowW - 40,
+    renderer_.drawTextCentered(assets_, calm() ? "calm mode ON (C)" : "flashing colors & motion  -  press C for calm mode",
+                               cx, 500, calm() ? SDL_Color{120, 255, 150, 255} : SDL_Color{255, 179, 71, 255});
+    renderer_.drawTextCentered(assets_, "F: fullscreen", cx, 530, SDL_Color{110, 95, 140, 255});
+    renderer_.drawTextCentered(assets_, TRIPPY_VERSION, renderer_.width() - 40,
                                Renderer::kWindowH - 20, SDL_Color{90, 70, 120, 255});
     renderer_.drawTextCentered(assets_, "you are the visitor. everything else is visiting you.",
                                cx, 290, SDL_Color{140, 120, 170, 255});
@@ -345,7 +383,7 @@ void Game::renderTitle() {
     renderer_.present();
 }
 
-void Game::renderWorld() {
+void Game::renderWorld(double fxTrip, double pulse) {
     const MoodPalette pal = paletteFor(room_->mood());
 
     // Tiles: real PNG if provided (tile_wall.png etc.), else generated
@@ -364,11 +402,11 @@ void Game::renderWorld() {
             case Tile::Door:  spriteName = "tile_door";  base = pal.door;  val = 1.0; break;
             }
             // Tiles flash brighter on the beat.
-            val *= 1.0 - 0.3 * trip_ * (1.0 - beatPulse_);
-            SDL_Color tint = trippyTint(base, val, trip_, worldTime_, tx, ty);
+            val *= 1.0 - 0.3 * fxTrip * (1.0 - pulse);
+            SDL_Color tint = trippyTint(base, val, fxTrip, worldTime_, tx, ty);
             const bool real = !assets_.spriteIsPlaceholder(spriteName);
             if (real)
-                tint = lerpColor(SDL_Color{255, 255, 255, 255}, tint, trip_);
+                tint = lerpColor(SDL_Color{255, 255, 255, 255}, tint, fxTrip);
             SDL_Texture* tex = assets_.sprite(spriteName);
             SDL_SetTextureColorMod(tex, tint.r, tint.g, tint.b);
             renderer_.drawSprite(tex, tx * kTile, ty * kTile, kTile, kTile);
@@ -451,7 +489,7 @@ void Game::renderWorld() {
 }
 
 void Game::renderStatusBar() {
-    const SDL_Rect bar{0, Renderer::kViewH, Renderer::kWindowW, Renderer::kStatusBarH};
+    const SDL_Rect bar{0, Renderer::kViewH, renderer_.width(), Renderer::kStatusBarH};
     renderer_.fillRect(bar, SDL_Color{10, 6, 18, 255});
     renderer_.outlineRect(bar, SDL_Color{60, 40, 80, 255});
 
@@ -476,8 +514,8 @@ void Game::renderStatusBar() {
     }
     std::string items = std::to_string(inventory_.items().size()) + " item"
                         + (inventory_.items().size() == 1 ? "" : "s");
-    std::string right = items + "   " + hint;
+    std::string right = (calm() ? std::string("calm   ") : std::string()) + items + "   " + hint;
     renderer_.drawText(assets_, right,
-                       Renderer::kWindowW - renderer_.textWidth(assets_, right) - 14,
+                       renderer_.width() - renderer_.textWidth(assets_, right) - 14,
                        textY, SDL_Color{200, 190, 215, 255});
 }
