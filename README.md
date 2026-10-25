@@ -14,6 +14,13 @@ lets the melody dissolve into a breathing drone. The visuals pulse on its
 beat. Missing sprites are generated at runtime as labeled colored squares,
 so the game is fully playable before a single asset exists.
 
+## Download
+
+- **macOS** (Apple Silicon + Intel): [TRIPPY-macos.dmg](https://github.com/noisyloop/TRIPPY/releases/latest/download/TRIPPY-macos.dmg)
+- **Windows**: [TRIPPY-windows.zip](https://github.com/noisyloop/TRIPPY/releases/latest/download/TRIPPY-windows.zip)
+
+These always point at the newest release ([all releases](https://github.com/noisyloop/TRIPPY/releases)).
+
 ## Install (no build needed)
 
 Every push to `main` is built on GitHub Actions and published as a new
