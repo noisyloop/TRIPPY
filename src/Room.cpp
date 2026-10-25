@@ -1,5 +1,7 @@
 #include "Room.h"
 
+#include "NPC.h"
+
 Direction oppositeOf(Direction d) {
     switch (d) {
     case Direction::North: return Direction::South;
@@ -85,8 +87,12 @@ Entity* Room::entityAt(int tx, int ty) const {
 }
 
 void Room::update(double dt) {
-    for (auto& e : entities_)
+    for (auto& e : entities_) {
         e->update(dt);
+        if (!wanderAllowed_) continue;
+        if (auto* npc = dynamic_cast<NPC*>(e.get()); npc && npc->wanders())
+            npc->wanderStep(dt, *this, playerX_, playerY_);
+    }
 }
 
 void Room::defaultSpawn(int& tx, int& ty) const {

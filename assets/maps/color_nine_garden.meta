@@ -4,3 +4,4 @@ transitions = east:fractal_library
 npcs = 0:npc_gardener 1:npc_seedling
 items = 0:color_nine_seed
 trip = 0.75
+wander = npc_seedling

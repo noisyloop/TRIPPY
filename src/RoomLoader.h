@@ -7,7 +7,7 @@
 
 // Loads assets/maps/<name>.txt (tile grid) + assets/maps/<name>.meta
 // (key=value: music_mood, transitions, npcs, items, on_enter_flag, trip,
-// kaleidoscope, locks, beam, void_to).
+// kaleidoscope, locks, beam, void_to, wander).
 //
 // Map characters:
 //   # wall   . floor   ~ tall grass   > door   N npc-slot   I item-slot

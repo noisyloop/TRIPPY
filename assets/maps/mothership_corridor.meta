@@ -4,3 +4,4 @@ transitions = south:saucer_meadow north:observation_deck east:engine_room west:c
 npcs = 0:ufo_greeter 1:npc_hull_whisperer
 trip = 0.8
 on_enter_flag = boarded_mothership
+wander = npc_hull_whisperer

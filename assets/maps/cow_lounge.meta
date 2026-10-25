@@ -4,3 +4,4 @@ transitions = east:mothership_corridor
 npcs = 0:npc_cow_moon 1:npc_cow_static 2:npc_cow_mirror
 items = 0:moon_milk
 trip = 0.5
+wander = npc_cow_moon npc_cow_static

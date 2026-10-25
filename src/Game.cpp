@@ -190,8 +190,13 @@ void Game::update(double dt) {
     }
     beatPulse_ = std::max(0.0, beatPulse_ - dt * 4.0);
 
+    // Items that change things: the marble opens the third eye a little
+    // wider everywhere; the pebble hums along with the melody.
+    const double tripTarget = std::min(1.0, room_->trip() + (inventory_.has("third_eye_marble") ? 0.2 : 0.0));
+    audio_.setHarmony(inventory_.has("humming_pebble"));
     const double ease = std::min(1.0, dt * 1.5);
-    trip_ += (room_->trip() - trip_) * ease;
+    trip_ += (tripTarget - trip_) * ease;
+    room_->setPlayer(player_.x(), player_.y(), state_ == State::Exploring);
     kaleido_ += (room_->kaleidoscope() - kaleido_) * ease;
 
     // Afterimages: sample the player every 40ms while moving, decay when still.
@@ -452,6 +457,16 @@ void Game::render() {
     renderer_.setCamera(camX, camY);
 
     tripFx_.begin(bg, zoom);
+    // Twinkling stars in the space around the room (rooms float in the void).
+    for (int gy = (camY - 64) / 48; gy <= (camY + visH + 64) / 48; ++gy)
+        for (int gx = (camX - 64) / 48; gx <= (camX + visW + 64) / 48; ++gx) {
+            uint32_t h = static_cast<uint32_t>(gx * 73856093) ^ static_cast<uint32_t>(gy * 19349663);
+            if (h % 5) continue;
+            double tw = 0.5 + 0.5 * std::sin(worldTime_ * (1.0 + (h % 7) * 0.3) + h);
+            SDL_Color c = hsvColor((h % 360) + worldTime_ * 10 * fxTrip, 0.35, 0.4 + 0.6 * tw);
+            renderer_.fillRectWorld(gx * 48 + static_cast<int>(h % 40), gy * 48 + static_cast<int>((h >> 8) % 40),
+                                    2, 2, c);
+        }
     renderWorld(fxTrip, pulse);
     tripFx_.end(worldTime_, calm() ? 0.0 : fxTrip * (0.75 + 0.5 * pulse), calm() ? 0.0 : kaleido_,
                 static_cast<int>((player_.x() + kTile / 2 - camX) * zoom),
@@ -473,6 +488,33 @@ void Game::render() {
 
 void Game::renderTitle() {
     renderer_.clear(SDL_Color{8, 5, 16, 255});
+
+    // Slowly turning kaleidoscope mandala behind the logo: rings of
+    // mirrored petals (triangles), each ring counter-rotating.
+    {
+        const float cx = renderer_.width() / 2.0f, cy = Renderer::kWindowH / 2.0f - 40;
+        const double speed = calm() ? 0.15 : 1.0;
+        std::vector<SDL_Vertex> v;
+        for (int ring = 6; ring >= 1; --ring) {
+            const int petals = 6 + ring * 2;
+            const double r0 = ring * 48.0, r1 = r0 + 44.0;
+            const double rot = worldTime_ * 0.12 * speed * (ring % 2 ? 1 : -1);
+            for (int p = 0; p < petals; ++p) {
+                const double a = rot + p * 6.2831853 / petals, half = 3.14159265 / petals;
+                SDL_Color c = hsvColor(ring * 47 + p * (360.0 / petals) * 0.25 + worldTime_ * 25 * speed,
+                                       0.75, 0.16 + 0.045 * ring, 255);
+                SDL_Color tip = hueRotate(c, 60);
+                auto at = [&](double rr, double ang, SDL_Color col) {
+                    return SDL_Vertex{{cx + static_cast<float>(rr * std::cos(ang)),
+                                       cy + static_cast<float>(rr * std::sin(ang))}, col, {0, 0}};
+                };
+                v.push_back(at(r0, a - half, c));
+                v.push_back(at(r1, a, tip));
+                v.push_back(at(r0, a + half, c));
+            }
+        }
+        SDL_RenderGeometry(renderer_.sdl(), nullptr, v.data(), static_cast<int>(v.size()), nullptr, 0);
+    }
 
     // Neon-sign flicker: two incommensurate sines so it never quite repeats.
     float flicker = 0.78f + 0.22f * static_cast<float>(

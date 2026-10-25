@@ -77,6 +77,8 @@ public:
     const std::vector<std::unique_ptr<Entity>>& entities() const { return entities_; }
 
     void update(double dt);
+    // Wandering NPCs avoid the player and only move while exploring.
+    void setPlayer(double x, double y, bool wanderAllowed) { playerX_ = x; playerY_ = y; wanderAllowed_ = wanderAllowed; }
 
     // First walkable tile, used as a spawn fallback.
     void defaultSpawn(int& tx, int& ty) const;
@@ -95,5 +97,7 @@ private:
     std::unordered_map<Direction, std::string> locks_;
     std::set<Direction> beams_;
     std::string voidTo_;
+    double playerX_ = -1000, playerY_ = -1000;
+    bool wanderAllowed_ = false;
     std::vector<std::unique_ptr<Entity>> entities_;
 };

@@ -115,6 +115,7 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
     }
 
     std::unordered_map<int, std::string> npcIds, itemIds;
+    std::string wanderers;  // " id id " for a cheap contains check
     while (std::getline(metaFile, line)) {
         std::string t = trim(line);
         if (t.empty() || t[0] == '#' || t[0] == ';') continue;
@@ -150,6 +151,8 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
                 else
                     std::cerr << "[rooms] " << name << ": bad " << key << " '" << tok << "'\n";
             }
+        } else if (key == "wander") {
+            wanderers = " " + value + " ";
         } else if (key == "void_to") {
             room->setVoidTo(value);
         } else if (key == "transitions") {
@@ -180,8 +183,11 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
         }
         if (it->second.rfind("ufo_", 0) == 0)
             room->addEntity(std::make_unique<UFO>(it->second, npcSlots[i].tx, npcSlots[i].ty));
-        else
-            room->addEntity(std::make_unique<NPC>(it->second, npcSlots[i].tx, npcSlots[i].ty));
+        else {
+            auto npc = std::make_unique<NPC>(it->second, npcSlots[i].tx, npcSlots[i].ty);
+            npc->setWander(wanderers.find(" " + it->second + " ") != std::string::npos);
+            room->addEntity(std::move(npc));
+        }
     }
     for (size_t i = 0; i < itemSlots.size(); ++i) {
         auto it = itemIds.find(static_cast<int>(i));

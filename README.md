@@ -109,6 +109,7 @@ rather than erroring.
 | I | Open / close inventory |
 | F / F11 / ⌘F / Alt+Enter | Toggle fullscreen (the window is also resizable) |
 | C | Calm mode: no flashing, warp or kaleidoscope, gentle colors (saved) |
+| Gamepad | d-pad/left stick move, A/B interact, X/Y inventory, Back calm, Start fullscreen |
 | Esc | Quit (autosaves) |
 
 ## Project layout
@@ -171,6 +172,7 @@ assets/
    locks = north:beat_boss_choir   # door opens once that flag is set
    beam = north                    # leaving that way plays the tractor beam
    void_to = color_nine_garden     # where V tiles drop you
+   wander = npc_cow_moon           # these NPCs amble around their slot
    ```
 
    Any npc id starting with `ufo_` becomes a drifting saucer: it floats in
@@ -205,6 +207,9 @@ boss uses its normal dialogue tree.
 infinite_stair → tessellation_temple (the Choir) → waiting_room (Customs
 Officer) → weight_chamber (The Weight) → bedroom_awake. Bring every floor
 item to the end for the second ending.
+
+**Items that do things**: the Third Eye Marble adds +0.2 trip everywhere;
+the Humming Pebble adds a harmony voice a third above the melody.
 
 **Impossible exits**: a transition may point at the room itself
 (`east:mobius_hall` inside `mobius_hall` loops forever), and if the target
