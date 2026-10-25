@@ -6,9 +6,17 @@
 #include <stdexcept>
 
 Renderer::Renderer() {
+    // Open big: 85% of the usable desktop (any aspect; the logical width
+    // follows it). Falls back to 800x600 if the display can't be queried.
+    int winW = kWindowW, winH = kWindowH;
+    SDL_Rect usable;
+    if (SDL_GetDisplayUsableBounds(0, &usable) == 0 && usable.w > 0 && usable.h > 0) {
+        winW = std::max(kWindowW, usable.w * 85 / 100);
+        winH = std::max(kWindowH, usable.h * 85 / 100);
+    }
     window_.reset(SDL_CreateWindow("TRIPPY",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        kWindowW, kWindowH, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE));
+        winW, winH, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE));
     if (!window_)
         throw std::runtime_error(std::string("SDL_CreateWindow failed: ") + SDL_GetError());
 

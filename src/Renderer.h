@@ -36,6 +36,7 @@ public:
     int width() const { return width_; }        // logical width, tracks aspect
     void handleWindowEvent(const SDL_Event& e);  // resize -> new logical width
     void toggleFullscreen();
+    void setIcon(SDL_Surface* icon) { SDL_SetWindowIcon(window_.get(), icon); }
 
     void clear(SDL_Color c);
     void present();

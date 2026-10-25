@@ -19,6 +19,18 @@ cp -R "$ROOT/assets" "$APP/Contents/Resources/assets"
 rm -rf "$APP/Contents/Resources/assets/sprites/legacy"
 sed "s/VERSION/$VERSION/g" "$HERE/Info.plist" > "$APP/Contents/Info.plist"
 
+# App icon (Flower of Life) from packaging/icon/icon.png. Cosmetic, so a
+# failure here does not stop the build.
+(
+  ICONSET="$STAGE/icon.iconset"
+  mkdir -p "$ICONSET"
+  for s in 16 32 128 256 512; do
+    sips -z $s $s "$ROOT/packaging/icon/icon.png" --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
+    sips -z $((s * 2)) $((s * 2)) "$ROOT/packaging/icon/icon.png" --out "$ICONSET/icon_${s}x${s}@2x.png" >/dev/null
+  done
+  iconutil -c icns -o "$APP/Contents/Resources/icon.icns" "$ICONSET"
+) || echo "warning: app icon not generated"
+
 cp "$HERE/README.txt" "$STAGE/dmg/README.txt"
 ln -s /Applications "$STAGE/dmg/Applications"
 

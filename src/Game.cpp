@@ -1,5 +1,7 @@
 #include "Game.h"
 
+#include <SDL_image.h>
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -44,6 +46,11 @@ Game::Game()
       audio_(assets_),
       roomLoader_(assets_.rootDir()),
       tripFx_(renderer_) {
+    // Window / taskbar / dock icon (the packaged apps also embed it).
+    if (!assets_.rootDir().empty())
+        if (SurfacePtr icon{IMG_Load((assets_.rootDir() + "/icon.png").c_str())})
+            renderer_.setIcon(icon.get());
+
     if (auto data = saveGame_.read()) {
         std::cout << "[save] resuming from " << saveGame_.path() << "\n";
         inventory_.setItems(data->inventory);
@@ -435,13 +442,14 @@ void Game::render() {
     const SDL_Color bg = hsvColor(hueOf(pal.background) + worldTime_ * 20.0 * fxTrip, 0.6, 0.12);
     renderer_.clear(bg);
 
-    // Zoom so the room fills the playfield (half steps keep the 2px art
-    // pixels whole), never below 1.5x; bigger rooms scroll.
+    // Zoom until the room covers the whole playfield (no empty bands); the
+    // camera scrolls along the longer axis. Half steps keep the 2px art
+    // pixels whole; big rooms stay at 1.5x and scroll both ways.
     const int viewW = renderer_.width(), viewH = Renderer::kViewH;
     float zoom = 1.0f;
     if (tripFx_.available()) {
-        double fit = std::min(double(viewW) / room_->pixelWidth(), double(viewH) / room_->pixelHeight());
-        zoom = static_cast<float>(std::clamp(std::floor(fit * 2.0) / 2.0, 1.5, 3.0));
+        double cover = std::max(double(viewW) / room_->pixelWidth(), double(viewH) / room_->pixelHeight());
+        zoom = static_cast<float>(std::clamp(std::ceil(cover * 2.0) / 2.0, 1.5, 4.0));
     }
     const int visW = static_cast<int>(viewW / zoom), visH = static_cast<int>(viewH / zoom);
 

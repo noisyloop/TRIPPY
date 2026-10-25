@@ -92,6 +92,10 @@ add_executable(trippy
   src/Assets.cpp
 )
 
+if(WIN32)
+  target_sources(trippy PRIVATE packaging/windows/trippy.rc)
+endif()
+
 target_link_libraries(trippy PRIVATE ${TRIPPY_SDL_LIBS})
 target_compile_definitions(trippy PRIVATE TRIPPY_VERSION="${TRIPPY_VERSION}" _USE_MATH_DEFINES)
 
