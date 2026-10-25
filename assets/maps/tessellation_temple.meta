@@ -1,8 +1,8 @@
-# No east door: you arrive from the meadow by appearing, not entering.
-# North wakes you up in the bedroom. South drops you into the meadow sky.
+# The Choir sings here. North (the Waiting Room) opens once they're finished.
 music_mood = dream_lydian
-transitions = north:bedroom south:saucer_meadow
-npcs = 0:npc_tessellator 1:npc_mirror_you
+transitions = north:waiting_room south:infinite_stair
+npcs = 0:boss_choir 1:npc_tessellator 2:npc_mirror_you
+locks = north:beat_boss_choir
 items = 0:third_eye_marble
 on_enter_flag = entered_temple
 trip = 0.8

@@ -36,6 +36,7 @@ public:
     // Player motion -> synth (see ChiptuneSynth::setMotion).
     void setMotion(float energy, int facing, int turns) { synth_.setMotion(energy, facing, turns); }
     uint32_t beatCount() const { return synth_.beatCount(); }
+    void setHarmony(bool on) { synth_.setHarmony(on); }
 
     // Built-in names: "blip" (dialogue tick), "pickup", "bump", "confirm".
     void playSfx(const std::string& name);

@@ -89,6 +89,10 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
             case '.': t = Tile::Floor; break;
             case '~': t = Tile::Grass; break;
             case '>': t = Tile::Door; break;
+            case 'V': t = Tile::Void; break;
+            case 'M': t = Tile::Mirror; break;
+            case '^': t = Tile::Warp; break;
+            case '=': t = Tile::Stairs; break;
             case 'N': npcSlots.push_back({tx, ty}); break;
             case 'I': itemSlots.push_back({tx, ty}); break;
             case ' ': t = Tile::Wall; break;  // padding outside the room
@@ -111,6 +115,7 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
     }
 
     std::unordered_map<int, std::string> npcIds, itemIds;
+    std::string wanderers;  // " id id " for a cheap contains check
     while (std::getline(metaFile, line)) {
         std::string t = trim(line);
         if (t.empty() || t[0] == '#' || t[0] == ';') continue;
@@ -131,6 +136,25 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
             }
             if (key == "trip") room->setTrip(v);
             else room->setKaleidoscope(v);
+        } else if (key == "locks" || key == "beam") {
+            // locks = north:flag_name    beam = north south
+            std::istringstream ss(value);
+            std::string tok;
+            while (ss >> tok) {
+                auto colon = tok.find(':');
+                Direction dir;
+                if (key == "locks" && colon != std::string::npos
+                    && parseDirection(tok.substr(0, colon), dir))
+                    room->setLock(dir, tok.substr(colon + 1));
+                else if (key == "beam" && parseDirection(tok, dir))
+                    room->setBeam(dir);
+                else
+                    std::cerr << "[rooms] " << name << ": bad " << key << " '" << tok << "'\n";
+            }
+        } else if (key == "wander") {
+            wanderers = " " + value + " ";
+        } else if (key == "void_to") {
+            room->setVoidTo(value);
         } else if (key == "transitions") {
             std::istringstream ss(value);
             std::string tok;
@@ -159,8 +183,11 @@ std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
         }
         if (it->second.rfind("ufo_", 0) == 0)
             room->addEntity(std::make_unique<UFO>(it->second, npcSlots[i].tx, npcSlots[i].ty));
-        else
-            room->addEntity(std::make_unique<NPC>(it->second, npcSlots[i].tx, npcSlots[i].ty));
+        else {
+            auto npc = std::make_unique<NPC>(it->second, npcSlots[i].tx, npcSlots[i].ty);
+            npc->setWander(wanderers.find(" " + it->second + " ") != std::string::npos);
+            room->addEntity(std::move(npc));
+        }
     }
     for (size_t i = 0; i < itemSlots.size(); ++i) {
         auto it = itemIds.find(static_cast<int>(i));

@@ -19,6 +19,7 @@ struct SdlRuntime {
             throw std::runtime_error(std::string("TTF_Init failed: ") + TTF_GetError());
         }
         IMG_Init(IMG_INIT_PNG);  // optional; missing PNGs fall back to rects
+        SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);  // optional too: no pads, no problem
     }
     ~SdlRuntime() {
         IMG_Quit();

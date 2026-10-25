@@ -46,6 +46,8 @@ public:
     // facing: 0 down, 1 up, 2 left, 3 right. turns: running count of
     // direction changes.
     void setMotion(float energy, int facing, int turns);
+    // Adds a voice that shadows the melody a third above (the Humming Pebble).
+    void setHarmony(bool on) { control_.harmony.store(on, std::memory_order_relaxed); }
 
     // Counts beats (quarter notes) of the audible track, for visual pulses.
     uint32_t beatCount() const { return beats_.load(std::memory_order_relaxed); }
@@ -58,6 +60,7 @@ private:
         std::atomic<float> energy{0};
         std::atomic<int> facing{0};
         std::atomic<int> turns{0};
+        std::atomic<bool> harmony{false};
     };
 
     // One playing pattern: 4 voices stepping through a 64-step (4 bar) loop.
@@ -80,12 +83,13 @@ private:
     struct Track {
         Mood mood;
         std::array<Voice, 4> voices;  // melody, bass, arp, noise
+        Voice harmonyVoice;           // optional third above the melody
         // Pattern data, one entry per 16th-note step over 4 bars.
         // melody/bass/arpChord hold precomputed MIDI notes, -1 = rest.
         // arpChord is the bar's chord as a scale degree; the arp pattern
         // over it is chosen live from the player's turns. roll gates the
         // melody note: it plays when roll < density (from energy).
-        struct Step { int melody = -1; int bass = -1; int arpChord = -1; bool noise = false; bool accent = false; float roll = 0; };
+        struct Step { int melody = -1; int melodyDegree = 0; int bass = -1; int arpChord = -1; bool noise = false; bool accent = false; float roll = 0; };
         std::vector<Step> steps;
         double stepTimer = 0;
         int stepIndex = 0;

@@ -1,12 +1,22 @@
 #include "Renderer.h"
 #include "Assets.h"
 
+#include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 Renderer::Renderer() {
+    // Open big: 85% of the usable desktop (any aspect; the logical width
+    // follows it). Falls back to 800x600 if the display can't be queried.
+    int winW = kWindowW, winH = kWindowH;
+    SDL_Rect usable;
+    if (SDL_GetDisplayUsableBounds(0, &usable) == 0 && usable.w > 0 && usable.h > 0) {
+        winW = std::max(kWindowW, usable.w * 85 / 100);
+        winH = std::max(kWindowH, usable.h * 85 / 100);
+    }
     window_.reset(SDL_CreateWindow("TRIPPY",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        kWindowW, kWindowH, SDL_WINDOW_ALLOW_HIGHDPI));
+        winW, winH, SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE));
     if (!window_)
         throw std::runtime_error(std::string("SDL_CreateWindow failed: ") + SDL_GetError());
 
@@ -17,8 +27,28 @@ Renderer::Renderer() {
     if (!renderer_)
         throw std::runtime_error(std::string("SDL_CreateRenderer failed: ") + SDL_GetError());
 
-    SDL_RenderSetLogicalSize(renderer_.get(), kWindowW, kWindowH);
+    SDL_SetWindowMinimumSize(window_.get(), 640, 480);
+    updateLogicalSize();
     SDL_SetRenderDrawBlendMode(renderer_.get(), SDL_BLENDMODE_BLEND);
+}
+
+void Renderer::updateLogicalSize() {
+    int w = kWindowW, h = kWindowH;
+    SDL_GetWindowSize(window_.get(), &w, &h);
+    if (h <= 0) h = kWindowH;
+    width_ = std::clamp(static_cast<int>(std::lround(double(kWindowH) * w / h)), 600, 1600);
+    SDL_RenderSetLogicalSize(renderer_.get(), width_, kWindowH);
+}
+
+void Renderer::handleWindowEvent(const SDL_Event& e) {
+    if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+        updateLogicalSize();
+}
+
+void Renderer::toggleFullscreen() {
+    bool fs = SDL_GetWindowFlags(window_.get()) & SDL_WINDOW_FULLSCREEN_DESKTOP;
+    SDL_SetWindowFullscreen(window_.get(), fs ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+    updateLogicalSize();
 }
 
 void Renderer::clear(SDL_Color c) {

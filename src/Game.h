@@ -7,6 +7,7 @@
 #include "Assets.h"
 #include "Audio.h"
 #include "Dialogue.h"
+#include "Duel.h"
 #include "Input.h"
 #include "Inventory.h"
 #include "Player.h"
@@ -25,7 +26,7 @@ public:
     void run();
 
 private:
-    enum class State { Title, Exploring, InDialogue, InventoryOpen };
+    enum class State { Title, Exploring, InDialogue, InventoryOpen, InDuel, Cutscene };
 
     // fromDir is the direction the player travelled to get here (spawns them
     // at the matching door); nullptr = use explicit/default position.
@@ -39,11 +40,21 @@ private:
     void pickupItemsUnderPlayer();
     void render();
     void renderTitle();
-    void renderWorld();
+    void renderWorld(double fxTrip, double pulse);
     void renderStatusBar();
+    void renderToast();
+    void toast(std::string text, double seconds = 3.0) { toast_ = std::move(text); toastTime_ = seconds; }
+    void finishDuel();
+    void updateSpecialTiles();
+    void renderCutscene(int camX, int camY, float zoom);
 
     bool hasFlag(const std::string& f) const { return flags_.contains(f); }
     void setFlag(const std::string& f) { flags_.insert(f); }
+
+    // Calm mode (photosensitivity): persisted as the "opt_calm" flag.
+    bool calm() const { return hasFlag("opt_calm"); }
+    void toggleCalm();
+    void handleGlobalKeys();
 
     Renderer renderer_;
     Assets assets_;
@@ -57,6 +68,7 @@ private:
     Player player_;
     Inventory inventory_;
     DialogueBox dialogue_;
+    Duel duel_;
     std::unique_ptr<Room> room_;
     std::unordered_set<std::string> flags_;
 
@@ -78,6 +90,18 @@ private:
     Facing lastFacing_ = Facing::Down;
     uint32_t lastBeat_ = 0;
     double beatPulse_ = 0;   // 1 on a beat, decays to 0
+
+    // Tractor-beam cutscene between rooms.
+    double cutTime_ = 0;
+    std::string cutTarget_;
+    Direction cutDir_ = Direction::North;
+    static constexpr double kBeamSeconds = 2.8;
+
+    double entryX_ = 0, entryY_ = 0;  // where the player entered (void fallback)
+    bool onWarp_ = false;             // standing on the warp we arrived on
+
+    std::string toast_;      // short centered message (doors, rewards)
+    double toastTime_ = 0;
 
     static constexpr double kTitleHoldSeconds = 0.8;
 };

@@ -2,16 +2,22 @@
 
 #include <SDL.h>
 #include <array>
+#include <vector>
 
-// Keyboard state with held vs edge-triggered queries.
+// Keyboard + gamepad state with held vs edge-triggered queries.
 // Call beginFrame() once per frame before pumping events,
 // then feed every SDL_Event through handleEvent().
+//
+// Gamepads (SDL_GameController) are mapped onto the same scancodes:
+// d-pad / left stick = arrows, A = E, B = Space, X/Y = I, Back = C (calm),
+// Start = F (fullscreen).
 class Input {
 public:
     void beginFrame();
     void handleEvent(const SDL_Event& e);
 
-    bool isDown(SDL_Scancode sc) const { return down_[sc]; }
+    ~Input();
+    bool isDown(SDL_Scancode sc) const { return down_[sc] || padDown_[sc]; }
     bool wasPressed(SDL_Scancode sc) const { return pressed_[sc]; }
     bool anyKeyDown() const;
 
@@ -31,5 +37,8 @@ public:
 private:
     std::array<bool, SDL_NUM_SCANCODES> down_{};
     std::array<bool, SDL_NUM_SCANCODES> pressed_{};
+    std::array<bool, SDL_NUM_SCANCODES> padDown_{};
+    std::vector<SDL_GameController*> pads_;
+    void setPad(SDL_Scancode sc, bool down);
     bool quit_ = false;
 };

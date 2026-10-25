@@ -142,10 +142,170 @@ const std::unordered_map<std::string, DialogueTree>& dialogueRegistry() {
             0, "", -1,
         };
 
+        t["ufo_greeter"] = DialogueTree{
+            {
+                {"DRONE-7", "WELCOME ABOARD. PLEASE KEEP YOUR SOUL INSIDE THE VEHICLE AT ALL TIMES.", 1, {}, "", ""},
+                {"DRONE-7", "THE WALLS ARE BREATHING. THAT IS NORMAL. IF THEY STOP, PLEASE INFORM A WALL.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_engineer"] = DialogueTree{
+            {
+                {"THE ENGINEER", "I am the engine and the engineer. It saves on staffing.", 1, {}, "", ""},
+                {"THE ENGINEER", "The core runs on gratitude. Step on the diamonds to reach it. Thank them afterwards.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["ufo_spark"] = DialogueTree{
+            {
+                {"SPARK", "zzt! i'm a spark from the core. i got out. don't tell.", 1, {}, "", ""},
+                {"SPARK", "the diamonds go round and round. outside, inside, outside. like breathing.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_cow_moon"] = DialogueTree{
+            {
+                {"MOON COW", "Moo means 'hello' in eleven dimensions and 'goodbye' in the twelfth.", 1, {}, "", ""},
+                {"MOON COW", "We weren't abducted. We applied.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_cow_static"] = DialogueTree{
+            {
+                {"STATIC COW", "Mmmmmmmzzzzzz. I'm tuned between two stations. Both of them are grass.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_cow_mirror"] = DialogueTree{
+            {
+                {"MIRROR COW", "Look across the floor. Your reflection is walking the other way.", 1, {}, "", ""},
+                {"MIRROR COW", "It's going home without you. Let it. It knows a shortcut.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["ufo_drone_a"] = DialogueTree{
+            {
+                {"HONOR DRONE", "THE MOTHER LISTENS. SPEAK FROM THE MIDDLE OF YOURSELF.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["ufo_drone_b"] = DialogueTree{
+            {
+                {"HONOR DRONE", "SHE HAS NINE THOUSAND YEARS OF PATIENCE AND FOUR MINUTES OF ATTENTION. HURRY, LOVINGLY.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_librarian"] = DialogueTree{
+            {
+                {"THE LIBRARIAN", "Every book here is the same book, read from a different chair.", 1, {}, "", ""},
+                {"THE LIBRARIAN", "Mind the gaps between the shelves. That's where unread pages fall. You'll fall too, but somewhere nicer.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_book_that_reads"] = DialogueTree{
+            {
+                {"A BOOK THAT READS", "I've been reading you. You're at a good part.", 1, {}, "", ""},
+                {"A BOOK THAT READS", "Don't skip ahead. The ending is better if you arrive at it.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_gardener"] = DialogueTree{
+            {
+                {"GARDENER OF NINE", "Most colors grow from light. Nine grows from attention.", 1, {}, "", ""},
+                {"GARDENER OF NINE", "Pick the seed in the middle. Don't look at it directly. Look at it the way you'd look at a friend.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_seedling"] = DialogueTree{
+            {
+                {"SEEDLING", "i'm going to be a color when i grow up.", 1, {}, "", ""},
+                {"SEEDLING", "maybe a loud one.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_stair_counter"] = DialogueTree{
+            {
+                {"STEP COUNTER", "Step four thousand and ninety-six. Or six. I keep losing count of up.", 1, {}, "", ""},
+                {"STEP COUNTER", "Up is a habit. Try down.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_descending_monk"] = DialogueTree{
+            {
+                {"DESCENDING MONK", "I've been walking down for years.", 1, {}, "", ""},
+                {"DESCENDING MONK", "I'm finally at the top.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_number_taker"] = DialogueTree{
+            {
+                {"NUMBER TAKER", "Take a number.", 1, {}, "", ""},
+                {"NUMBER TAKER", "Your number is the color of a sneeze. You're next. You've always been next.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["npc_patient_light"] = DialogueTree{
+            {
+                {"PATIENT LIGHT", "I've been waiting here since before light was fast.", 1, {}, "", ""},
+                {"PATIENT LIGHT", "Don't hurry the Officer. Hurrying is a form, and you haven't filled it out.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["boss_mother_of_saucers"] = DialogueTree{
+            {
+                {"MOTHER-OF-SAUCERS", "GO ON, LITTLE SIGNAL. THE BEAM IS NORTH. I WILL WAVE WITH ALL MY LIGHTS.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["boss_choir"] = DialogueTree{
+            {
+                {"THE CHOIR", "--GO ON-- --NORTH-- --WE'LL HUM YOU THROUGH THE DOOR.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+        t["boss_customs"] = DialogueTree{
+            {
+                {"CUSTOMS OFFICER", "CLEARED. MOVE ALONG. HAVE A TIMELESS DAY.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+
+        t["npc_hull_whisperer"] = DialogueTree{
+            {
+                {"HULL WHISPERER", "Shhh. The ship is dreaming it's a seashell.", -1,
+                 {{"What does it hear?", 1}, {"Can I dream too?", 2}}, "", ""},
+                {"HULL WHISPERER", "The sea it came from. The sea is also a ship. "
+                                   "Everything is, if you hold it to your ear.", -1, {}, "", ""},
+                {"HULL WHISPERER", "Sweet thing, you've been dreaming since the bedroom.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+
+        // The ending. Collecting every floor item opens the second one.
+        t["npc_mother_awake"] = DialogueTree{
+            {
+                {"MOM?", "You're up! You were glowing in your sleep again. All the colors.", 1, {}, "", ""},
+                {"MOM?", "Did you have the dream with the saucers? Your father used to "
+                         "have that one.", -1,
+                 {{"I put something down.", 2}, {"I want to go back.", 3}}, "", ""},
+                {"MOM?", "Then you're lighter. Good. Breakfast is whatever color you want.",
+                 -1, {}, "ending_light", ""},
+                {"MOM?", "You can. The door's right there. It always was.", -1, {}, "ending_door", ""},
+                {"MOM?", "...Sweetheart. You brought ALL of it back? The milk from the moon, "
+                         "the seed, the page, the spark?", 5, {}, "", ""},
+                {"MOM?", "Then you're not dreaming anymore. You're visiting. Welcome home, "
+                         "little visitor. Here -- you dropped this on the way in.", -1, {},
+                 "true_ending", "the_color_nine"},
+            },
+            0, "collected_everything", 4,
+        };
+
         return t;
     }();
     return trees;
 }
+
+}  // namespace
 
 // Greedy word wrap against a pixel width.
 std::vector<std::string> wrapText(Assets& assets, const std::string& text, int maxWidth) {
@@ -166,7 +326,6 @@ std::vector<std::string> wrapText(Assets& assets, const std::string& text, int m
     return lines;
 }
 
-}  // namespace
 
 const DialogueTree* dialogueForNpc(const std::string& npcId) {
     const auto& reg = dialogueRegistry();
@@ -237,7 +396,7 @@ void DialogueBox::render(Renderer& r, Assets& assets) const {
     const auto& n = node();
 
     const int boxH = 140;
-    const SDL_Rect box{12, Renderer::kViewH - boxH - 12, Renderer::kWindowW - 24, boxH};
+    const SDL_Rect box{12, Renderer::kViewH - boxH - 12, r.width() - 24, boxH};
     r.fillRect(box, SDL_Color{16, 10, 28, 235});
     r.outlineRect(box, SDL_Color{214, 62, 106, 255});  // neon pink trim
 

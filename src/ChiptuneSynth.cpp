@@ -133,6 +133,10 @@ void ChiptuneSynth::Track::start(const Mood& m, uint32_t visitSeed, const Contro
     arp.gain = 0.10f;
     arp.attack = 0.002f; arp.decay = 0.03f; arp.sustain = 0.3f; arp.release = 0.03f;
 
+    harmonyVoice.duty = 0.25f;
+    harmonyVoice.gain = 0.12f;
+    harmonyVoice.attack = 0.01f; harmonyVoice.decay = 0.12f; harmonyVoice.sustain = 0.5f; harmonyVoice.release = 0.08f;
+
     auto& noise = voices[3];
     noise.isNoise = true;
     noise.gain = 0.14f;
@@ -168,6 +172,7 @@ void ChiptuneSynth::Track::generatePattern() {
             melodyDegree += rng.range(5) - 2;  // -2..+2 steps
             melodyDegree = std::clamp(melodyDegree, degrees - 2, 2 * degrees + 3);
             st.melody = scaleNote(melodyDegree, 1);
+            st.melodyDegree = melodyDegree;
             st.accent = (i % 8 == 0);
             float r = rng.range(1000) / 1000.0f;
             st.roll = (i % 2 == 0) ? r * 0.55f : 0.35f + r * 0.65f;
@@ -209,8 +214,11 @@ void ChiptuneSynth::Track::advanceStep(std::atomic<uint32_t>* beats) {
     const int degrees = static_cast<int>(mood.scale.size());
 
     const float density = 0.2f + 0.8f * energy;
-    if (st.melody >= 0 && st.roll < density)
+    if (st.melody >= 0 && st.roll < density) {
         voices[0].noteOn(midiToFreq(st.melody), stepSec * (st.accent ? 1.8 : 0.9));
+        if (ctl && ctl->harmony.load(std::memory_order_relaxed))
+            harmonyVoice.noteOn(midiToFreq(scaleNote(st.melodyDegree + 2, 1)), stepSec * (st.accent ? 1.8 : 0.9));
+    }
     if (st.bass >= 0)
         voices[1].noteOn(midiToFreq(st.bass), stepSec * 0.95);
     if (st.arpChord >= 0) {
@@ -250,7 +258,7 @@ float ChiptuneSynth::Track::tick(double dt, std::atomic<uint32_t>* beats) {
         stepTimer -= stepSec;
         advanceStep(beats);
     }
-    float mix = voices[0].sample(dt) * melodyLevel
+    float mix = (voices[0].sample(dt) + harmonyVoice.sample(dt)) * melodyLevel
               + voices[1].sample(dt)
               + voices[2].sample(dt) * (0.5f + 0.5f * energy)
               + voices[3].sample(dt) * (0.3f + 0.7f * energy);

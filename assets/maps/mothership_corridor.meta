@@ -1,0 +1,7 @@
+# Inside the saucer. The walls breathe (that's the warp, turned up).
+music_mood = tense_chromatic
+transitions = south:saucer_meadow north:observation_deck east:engine_room west:cow_lounge
+npcs = 0:ufo_greeter 1:npc_hull_whisperer
+trip = 0.8
+on_enter_flag = boarded_mothership
+wander = npc_hull_whisperer

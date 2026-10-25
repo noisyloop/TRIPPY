@@ -1,0 +1,2 @@
+// Embeds the app icon in trippy.exe (Explorer, taskbar, Alt-Tab).
+IDI_APP_ICON ICON "trippy.ico"

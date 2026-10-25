@@ -11,6 +11,15 @@ std::string Inventory::displayName(const std::string& itemId) {
         {"apology_note", "Apology Note"},
         {"humming_pebble", "Humming Pebble"},
         {"third_eye_marble", "Third Eye Marble"},
+        {"core_spark", "Core Spark"},
+        {"moon_milk", "Moon Milk"},
+        {"library_page", "Library Page"},
+        {"color_nine_seed", "Seed of the Color Nine"},
+        {"saucer_song", "Saucer Song"},
+        {"choir_echo", "Choir Echo"},
+        {"visa_of_now", "Visa of Now"},
+        {"feather_of_letting_go", "Feather of Letting Go"},
+        {"the_color_nine", "The Color Nine"},
     };
     auto it = names.find(itemId);
     if (it != names.end()) return it->second;
@@ -30,7 +39,7 @@ void Inventory::add(const std::string& itemId) {
 }
 
 void Inventory::render(Renderer& r, Assets& assets) const {
-    const SDL_Rect panel{Renderer::kWindowW / 2 - 180, 80, 360, 320};
+    const SDL_Rect panel{r.width() / 2 - 180, 80, 360, 320};
     r.fillRect(panel, SDL_Color{16, 10, 28, 240});
     r.outlineRect(panel, SDL_Color{255, 179, 71, 255});
 

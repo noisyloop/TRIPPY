@@ -1,0 +1,8 @@
+# The core is sealed in; only the diamonds reach it. Warps jump to the
+# next ^ in reading order: outside -> core -> outside.
+music_mood = playful_major
+transitions = west:mothership_corridor
+npcs = 0:npc_engineer 1:ufo_spark
+items = 0:core_spark
+trip = 0.7
+kaleidoscope = 0.25

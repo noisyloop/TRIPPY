@@ -83,6 +83,7 @@ add_executable(trippy
   src/NPC.cpp
   src/UFO.cpp
   src/TripFX.cpp
+  src/Duel.cpp
   src/Dialogue.cpp
   src/Inventory.cpp
   src/SaveGame.cpp
@@ -90,6 +91,10 @@ add_executable(trippy
   src/ChiptuneSynth.cpp
   src/Assets.cpp
 )
+
+if(WIN32)
+  target_sources(trippy PRIVATE packaging/windows/trippy.rc)
+endif()
 
 target_link_libraries(trippy PRIVATE ${TRIPPY_SDL_LIBS})
 target_compile_definitions(trippy PRIVATE TRIPPY_VERSION="${TRIPPY_VERSION}" _USE_MATH_DEFINES)

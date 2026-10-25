@@ -43,6 +43,7 @@ jobs:
           cp -R /tmp/trippy-dmg/TRIPPY.app "$RUNNER_TEMP/"
           hdiutil detach /tmp/trippy-dmg
           codesign --verify --deep "$RUNNER_TEMP/TRIPPY.app"
+          test -f "$RUNNER_TEMP/TRIPPY.app/Contents/Resources/icon.icns"
           cd /tmp
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy "$RUNNER_TEMP/TRIPPY.app/Contents/MacOS/TRIPPY" > run.log 2>&1 &
           PID=$!
