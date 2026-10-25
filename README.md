@@ -104,6 +104,34 @@ hook hands you a byte length, and the synth currently interprets it as
 `int16` mono frames. Mismatching these plays garbage or half-speed audio
 rather than erroring.
 
+## Building content fast (with Claude Code)
+
+All content is text: rooms in `assets/maps/`, dialogue in
+`assets/dialogue/`, boss duels in `assets/duels/` (formats in
+`docs/content-format.md`, voice and rules in `docs/style-guide.md`).
+Project skills in `.claude/skills/` turn a one-line idea into checked,
+screenshotted content:
+
+| Skill | Does |
+| --- | --- |
+| `/new-room <idea>` | draws the map + .meta, wires doors both ways, stubs NPC dialogue, checks, screenshots |
+| `/new-npc <room> <idea>` | places a slot and writes dialogue in the house voice |
+| `/new-boss <room> <concept>` | duel script, placement, locked door, reward, after-talk, playtest |
+| `/new-act <theme>` | plans and builds 3–5 linked rooms with a boss |
+| `/playtest [room]` | checker + build + screenshots + scripted input (talk, duels, doors) |
+| `/release` | PR to main, watch CI, confirm the release and download links |
+
+The tools they use work by hand too:
+
+```sh
+python3 scripts/check_content.py --graph   # validate everything, print the room graph
+scripts/shot.sh cow_lounge                 # headless screenshot -> screenshots/cow_lounge.png
+scripts/drive.sh "--room observation_deck --pos 7,5" tap:Up tap:e wait:2 shot:/tmp/duel.png
+```
+
+CI runs the checker and attaches a screenshot of every room
+(`room-screenshots` artifact) to each build; releases need it green.
+
 ## Developer shortcuts
 
 ```sh
