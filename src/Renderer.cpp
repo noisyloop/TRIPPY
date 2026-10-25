@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 Renderer::Renderer() {
-    window_.reset(SDL_CreateWindow("SORRY",
+    window_.reset(SDL_CreateWindow("TRIPPY",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         kWindowW, kWindowH, SDL_WINDOW_ALLOW_HIGHDPI));
     if (!window_)

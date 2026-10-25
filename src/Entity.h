@@ -21,6 +21,11 @@ public:
     // Solid entities block movement; items are walk-over.
     virtual bool solid() const { return kind_ == EntityKind::Npc; }
     virtual void update(double dt) { (void)dt; }
+    // Sub-tile pixel offset for smooth movers (drifting UFOs); 0 for static.
+    virtual void drawOffset(double& dx, double& dy) const { dx = 0; dy = 0; }
+
+protected:
+    void setTile(int tx, int ty) { tileX_ = tx; tileY_ = ty; }
 
 private:
     std::string id_;

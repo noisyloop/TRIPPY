@@ -1,9 +1,10 @@
-# SORRY
+# TRIPPY
 
-A 2D top-down exploration game with an emotional core: neon over desert dusk,
-excited and melancholy at once. Las Vegas as a feeling. The garden is bat
-country. Structurally inspired by OMORI — small rooms, moody music, dialogue
-that remembers what you said.
+A psychedelic, bizarre, colorful 2D top-down room explorer. You are a small
+green alien. Saucers drift through meadows, hallways loop into themselves, and
+a jeweled being in a temple folds greetings out of light. Small rooms, moody
+music, dialogue that remembers what you said. (Formerly SORRY — the original
+bedroom/hallway/garden rooms are still the starting path.)
 
 All music is **synthesized in code** — a four-voice chiptune generator makes a
 deterministic looping track per "mood", and rooms crossfade between moods as
@@ -13,7 +14,7 @@ so the game is fully playable before a single asset exists.
 ## Quick start
 
 ```sh
-cmake -B build && cmake --build build && ./build/sorry
+cmake -B build && cmake --build build && ./build/trippy
 ```
 
 Run it from the repo root (the game looks for `assets/` in the working
@@ -91,6 +92,7 @@ src/
   Player.{h,cpp}      Pixel movement, tile collision, facing, walk cycle
   Entity.{h,cpp}      Base for NPCs / items / triggers
   NPC.{h,cpp}         NPC entity (dialogue looked up by id)
+  UFO.{h,cpp}         Drifting saucer NPC (ids starting with ufo_)
   Dialogue.{h,cpp}    Dialogue trees (in code) + typewriter dialogue box
   Inventory.{h,cpp}   Item list + display names + overlay
   SaveGame.{h,cpp}    JSON save/load (hand-rolled, zero deps)
@@ -121,11 +123,15 @@ assets/
    ```ini
    music_mood = dream_lydian
    transitions = west:garden north:casino_floor
-   npcs = 0:npc_flamingo 1:npc_elvis
+   npcs = 0:npc_flamingo 1:ufo_drifter
    items = 0:room_key
    # optional: set a story flag the moment the player walks in
    on_enter_flag = reached_myroom
    ```
+
+   Any npc id starting with `ufo_` becomes a drifting saucer: it floats in
+   a slow loop around its slot, is walk-under (non-solid), and talks like
+   any NPC.
 
    `N` and `I` slots are numbered 0,1,2… in reading order (left-to-right,
    top-to-bottom) and bound to ids here. Transitions are `direction:room` —
@@ -140,6 +146,12 @@ assets/
    `Inventory::displayName` (unknown ids fall back to de-underscored text).
 
 No C++ changes are needed for the room itself.
+
+**Impossible exits**: a transition may point at the room itself
+(`east:mobius_hall` inside `mobius_hall` loops forever), and if the target
+room has no door facing back, the player materializes at its default spawn
+instead of a doorway. The strange rooms past the garden (`mobius_hall`,
+`saucer_meadow`, `tessellation_temple`) use both tricks.
 
 ## Adding a music mood
 
@@ -171,12 +183,18 @@ placeholder, so you can replace art one file at a time:
 
 | File | Replaces |
 | --- | --- |
-| `player_down_0.png`, `player_down_1.png` | player facing down, 2-frame walk |
+| `player_down_0.png`, `player_down_1.png` | the alien hero facing down, 2-frame walk |
 | `player_up_0/1.png`, `player_left_0/1.png`, `player_right_0/1.png` | other facings |
 | `player.png` | single fallback used only while directional frames are missing |
 | `tile_floor.png`, `tile_wall.png`, `tile_grass.png`, `tile_door.png` | terrain |
 | `npc_mother.png`, `npc_dealer.png`, `npc_shadow.png` | the starter NPCs |
+| `ufo_glimmer.png`, `ufo_humm.png`, `ufo_wobble.png`, `ufo_pilgrim.png` | drifting saucers |
+| `npc_hallkeeper.png`, `npc_tessellator.png`, `npc_mirror_you.png` | strange-room NPCs |
 | `apology_note.png` | the starter item (also its inventory icon) |
+
+Missing player frames are generated as a pixel alien and `ufo_*` as a
+pixel saucer (other placeholders stay labeled squares). The previous human
+hero art lives in `assets/sprites/legacy/` and is not loaded.
 
 Any new NPC/item id you invent in a `.meta` file automatically looks for
 `assets/sprites/<id>.png` the same way.
@@ -184,7 +202,7 @@ Any new NPC/item id you invent in a `.meta` file automatically looks for
 ## Save file
 
 Autosaves on every room transition and on quit. JSON at
-`~/Library/Application Support/sorry/save.json` (macOS) or the SDL pref dir
+`~/Library/Application Support/trippy/save.json` (macOS) or the SDL pref dir
 elsewhere: current room, player position, inventory, story flags. Delete the
 file to start over. A corrupt or missing file falls back to a fresh start in
 `bedroom` — never a crash.

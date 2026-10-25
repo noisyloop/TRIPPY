@@ -49,7 +49,7 @@ const std::unordered_map<std::string, DialogueTree>& dialogueRegistry() {
 
         t["npc_shadow"] = DialogueTree{
             {
-                {"???", "We can't stop here. This is bat country.", 1, {}, "met_shadow", ""},
+                {"???", "Careful. The grass here remembers footsteps that haven't happened yet.", 1, {}, "met_shadow", ""},
                 {"???", "...but you already stopped, didn't you. Something in "
                         "the grass is waiting for you. It has your handwriting.", -1, {}, "", ""},
             },
@@ -58,6 +58,89 @@ const std::unordered_map<std::string, DialogueTree>& dialogueRegistry() {
         t["npc_shadow"].nodes.push_back(
             {"???", "You found it. Some words weigh more than the whole "
                     "desert. Carry it gently.", -1, {}, "", ""});
+
+        // --- TRIPPY: the strange rooms past the garden ---------------------
+
+        t["npc_hallkeeper"] = DialogueTree{
+            {
+                {"THE COUNTER", "Welcome back. That's visit number... oh. "
+                                "It's always visit number one.", 1, {}, "met_counter", ""},
+                {"THE COUNTER", "Ask me something. I'm the part of the hallway "
+                                "that noticed itself.", -1,
+                 {{"How do I leave?", 2}, {"Why does east go east?", 3}}, "", ""},
+                {"THE COUNTER", "Leaving is a direction. Try one that isn't east. "
+                                "Up is a direction too, if you squint.", -1, {}, "", ""},
+                {"THE COUNTER", "East is shy. It only ever meets itself.", -1, {}, "", ""},
+                {"THE COUNTER", "Again! Again! The hallway loves you in a circle.", -1, {}, "", ""},
+            },
+            0, "met_counter", 4,
+        };
+
+        t["ufo_pilgrim"] = DialogueTree{
+            {
+                {"PILGRIM", "bzzt. we have been parked here since tomorrow.", 1, {}, "", ""},
+                {"PILGRIM", "the hallway is a ring. the ring is a halo. "
+                            "the halo is on you. bzzt.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+
+        t["ufo_glimmer"] = DialogueTree{
+            {
+                {"GLIMMER", "Hello, small green certainty. Your planet is very "
+                            "loud from up here.", 1, {}, "met_glimmer", ""},
+                {"GLIMMER", "Mostly it hums in the key of worry. "
+                            "We hum back in the key of 'it's okay'.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+
+        t["ufo_humm"] = DialogueTree{
+            {
+                {"HUMM", "mmmmmmmmmmmmmmmmmmmm.", 1, {}, "", ""},
+                {"", "(it is humming the exact shape of your name)", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+
+        t["ufo_wobble"] = DialogueTree{
+            {
+                {"WOBBLE", "We came for the cows but stayed for the colors. "
+                           "Have you seen the color nine?", -1,
+                 {{"Yes.", 1}, {"What's nine?", 2}}, "", ""},
+                {"WOBBLE", "Then you know why our lights never stop smiling.", -1, {}, "", ""},
+                {"WOBBLE", "Close all your eyes. Not those ones. The other ones. "
+                           "The sky folds west from here.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
+
+        t["npc_tessellator"] = DialogueTree{
+            {
+                {"THE TESSELLATOR", "OH! A visitor! A visitor made of visitor! "
+                                    "I folded this greeting just for you.", 1, {}, "met_tessellator", ""},
+                {"THE TESSELLATOR", "It is a gift made of smaller gifts. Hold it "
+                                    "with your inside hands.", -1,
+                 {{"It's beautiful.", 2}, {"I don't understand.", 3}}, "", ""},
+                {"THE TESSELLATOR", "Everything is, once you stop naming it. "
+                                    "North is waking up. Waking up is also a room.", -1, {}, "", ""},
+                {"THE TESSELLATOR", "Perfect! Understanding is just a smaller room. "
+                                    "You are much too big for it now.", -1, {}, "", ""},
+                {"THE TESSELLATOR", "Still unfolding? Good. The temple likes you "
+                                    "best half-open.", -1, {}, "", ""},
+            },
+            0, "met_tessellator", 4,
+        };
+
+        t["npc_mirror_you"] = DialogueTree{
+            {
+                {"YOU (AGAIN)", "Don't panic. I'm the version of you that already "
+                                "got home.", 1, {}, "", ""},
+                {"YOU (AGAIN)", "Spoiler: home was also a spaceship. "
+                                "It was the whole time.", -1, {}, "", ""},
+            },
+            0, "", -1,
+        };
 
         return t;
     }();
