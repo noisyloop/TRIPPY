@@ -1,0 +1,8 @@
+# After-duel dialogue for boss_weight (format: docs/content-format.md)
+
+[rest]
+THE WEIGHT: (it is a small, warm stone now, humming to itself)
+-> rest2
+
+[rest2]
+THE WEIGHT: You came back. That's allowed. Visit me like a photograph, not a backpack.

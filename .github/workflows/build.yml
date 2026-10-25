@@ -18,6 +18,27 @@ env:
   VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('0.{0}', github.run_number) }}
 
 jobs:
+  content:
+    name: Content check + room screenshots (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check rooms, dialogue and duels
+        run: python3 scripts/check_content.py --graph
+      - name: Build against system SDL2 (fast)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev fonts-dejavu-core
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j 4
+      - name: Screenshot every room
+        run: scripts/shot.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: room-screenshots
+          path: screenshots/
+
   macos:
     name: macOS app (.dmg)
     runs-on: macos-latest
@@ -95,7 +116,7 @@ jobs:
 
   release:
     name: Publish GitHub release
-    needs: [macos, windows]
+    needs: [content, macos, windows]
     # Each push to main (and each v* tag) becomes a release.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
@@ -103,6 +124,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: TRIPPY-*
           merge-multiple: true
       - name: Create the release
         env:
