@@ -1,0 +1,8 @@
+# Dialogue for npc_descending_monk (format: docs/content-format.md)
+
+[n0]
+DESCENDING MONK: I've been walking down for years.
+-> n1
+
+[n1]
+DESCENDING MONK: I'm finally at the top.

@@ -1,0 +1,8 @@
+# Dialogue for npc_seedling (format: docs/content-format.md)
+
+[n0]
+SEEDLING: i'm going to be a color when i grow up.
+-> n1
+
+[n1]
+SEEDLING: maybe a loud one.

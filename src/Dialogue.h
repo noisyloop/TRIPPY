@@ -35,7 +35,11 @@ struct DialogueTree {
 // Greedy word wrap against a pixel width (shared with the boss duels).
 std::vector<std::string> wrapText(Assets& assets, const std::string& text, int maxWidth);
 
-// Trees live in code for now; looked up by NPC id. Null if unknown.
+// Trees live in assets/dialogue/<npc_id>.txt (docs/content-format.md).
+// loadDialogue (re)reads them all and returns how many parsed; bad files are
+// reported on stderr and skipped. Pointers from dialogueForNpc are invalidated
+// by the next load. Null if unknown.
+int loadDialogue(const std::string& assetRoot);
 const DialogueTree* dialogueForNpc(const std::string& npcId);
 
 // --- Runtime box ------------------------------------------------------------

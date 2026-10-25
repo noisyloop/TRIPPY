@@ -1,0 +1,8 @@
+# Dialogue for ufo_pilgrim (format: docs/content-format.md)
+
+[n0]
+PILGRIM: bzzt. we have been parked here since tomorrow.
+-> n1
+
+[n1]
+PILGRIM: the hallway is a ring. the ring is a halo. the halo is on you. bzzt.

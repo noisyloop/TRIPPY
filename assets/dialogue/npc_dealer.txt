@@ -1,0 +1,13 @@
+# Dialogue for npc_dealer (format: docs/content-format.md)
+alt: met_dealer -> n2
+
+[n0]
+DEALER: This hallway is longer than it looks, kid. Everything in this town is longer than it looks.
+set: met_dealer
+-> n1
+
+[n1]
+DEALER: House always wins, they say. But the house never says sorry. Remember that when you reach the garden.
+
+[n2]
+DEALER: Cards down, kid. The garden is waiting east of nowhere.

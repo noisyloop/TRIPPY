@@ -1,0 +1,4 @@
+# Dialogue for npc_cow_static (format: docs/content-format.md)
+
+[n0]
+STATIC COW: Mmmmmmmzzzzzz. I'm tuned between two stations. Both of them are grass.

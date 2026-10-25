@@ -1,0 +1,28 @@
+# Dialogue for npc_mother_awake (format: docs/content-format.md)
+alt: collected_everything -> n4
+
+[n0]
+MOM?: You're up! You were glowing in your sleep again. All the colors.
+-> n1
+
+[n1]
+MOM?: Did you have the dream with the saucers? Your father used to have that one.
+* I put something down. -> n2
+* I want to go back. -> n3
+
+[n2]
+MOM?: Then you're lighter. Good. Breakfast is whatever color you want.
+set: ending_light
+
+[n3]
+MOM?: You can. The door's right there. It always was.
+set: ending_door
+
+[n4]
+MOM?: ...Sweetheart. You brought ALL of it back? The milk from the moon, the seed, the page, the spark?
+-> n5
+
+[n5]
+MOM?: Then you're not dreaming anymore. You're visiting. Welcome home, little visitor. Here -- you dropped this on the way in.
+set: true_ending
+give: the_color_nine

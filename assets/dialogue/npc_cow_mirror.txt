@@ -1,0 +1,8 @@
+# Dialogue for npc_cow_mirror (format: docs/content-format.md)
+
+[n0]
+MIRROR COW: Look across the floor. Your reflection is walking the other way.
+-> n1
+
+[n1]
+MIRROR COW: It's going home without you. Let it. It knows a shortcut.

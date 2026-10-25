@@ -1,0 +1,4 @@
+# Dialogue for ufo_drone_b (format: docs/content-format.md)
+
+[n0]
+HONOR DRONE: SHE HAS NINE THOUSAND YEARS OF PATIENCE AND FOUR MINUTES OF ATTENTION. HURRY, LOVINGLY.

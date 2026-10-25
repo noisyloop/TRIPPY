@@ -1,0 +1,8 @@
+# Dialogue for npc_mirror_you (format: docs/content-format.md)
+
+[n0]
+YOU (AGAIN): Don't panic. I'm the version of you that already got home.
+-> n1
+
+[n1]
+YOU (AGAIN): Spoiler: home was also a spaceship. It was the whole time.

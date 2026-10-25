@@ -1,0 +1,13 @@
+# Dialogue for npc_shadow (format: docs/content-format.md)
+alt: got_apology_note -> n2
+
+[n0]
+???: Careful. The grass here remembers footsteps that haven't happened yet.
+set: met_shadow
+-> n1
+
+[n1]
+???: ...but you already stopped, didn't you. Something in the grass is waiting for you. It has your handwriting.
+
+[n2]
+???: You found it. Some words weigh more than the whole desert. Carry it gently.

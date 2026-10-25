@@ -1,0 +1,4 @@
+# Dialogue for boss_mother_of_saucers (format: docs/content-format.md)
+
+[n0]
+MOTHER-OF-SAUCERS: GO ON, LITTLE SIGNAL. THE BEAM IS NORTH. I WILL WAVE WITH ALL MY LIGHTS.

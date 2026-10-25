@@ -1,0 +1,39 @@
+# Boss duel for boss_weight (format: docs/content-format.md)
+name: THE WEIGHT
+mood: melancholy_a_minor
+reward: feather_of_letting_go
+after_room: bedroom_awake
+intro: Hello. I'm everything you carried in here. I'm very heavy. I'm very you.
+victory: Okay. I'm putting myself down now. ...Oh. Oh, that's nice. Wake up, visitor. Wake up all the way.
+
+[talk]
+line: Why did you bring me?
+* I didn't know I could put you down. | +30 | ...Nobody tells you that. I'm sorry nobody told you.
+* To get stronger. | +10 | You did. Look at your arms. Tiny, but heroic.
+* I didn't bring you. | -10 | Then who's been holding me all this time?
+
+[echo]
+line: Remember how you walked in. Every step.
+length: 5
+gain: 25
+success: ...You remember. I thought only I remembered.
+failure: That's not how it went. It's okay. Nobody remembers it right.
+
+[talk]
+line: If you put me down, who will you be?
+* Lighter. | +30 | Lighter. Yes. Light-er. Made of more light.
+* I don't know. | +25 | That's the most honest thing anyone has said in here.
+* Nobody. | -10 | Nobody is just somebody with the volume down.
+
+[beat]
+line: Walk with me. Slowly. Like a heartbeat.
+length: 8
+gain: 25
+success: Thump. Thump. There you are.
+failure: Too fast. You were always too fast. It's okay.
+
+[talk]
+line: Will you miss me?
+* A little. | +35 | Good. Missing is how you'll know you're free.
+* Come with me, but lighter. | +20 | I'll come as a story, not a weight.
+* No. | +10 | Ha. Liar. Go on anyway.

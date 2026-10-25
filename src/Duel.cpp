@@ -2,139 +2,27 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <unordered_map>
 
 #include "Assets.h"
+#include "Content.h"
 #include "Dialogue.h"
 #include "Input.h"
 #include "Renderer.h"
 #include "TripFX.h"
 
-// --- Boss scripts (extract to files later, like dialogue) ---------------------
+// --- Boss scripts: assets/duels/<boss_id>.txt -------------------------------
 
 namespace {
 
 using K = DuelRound::Kind;
 
-const std::unordered_map<std::string, DuelScript>& duelRegistry() {
-    static const std::unordered_map<std::string, DuelScript> duels = [] {
-        std::unordered_map<std::string, DuelScript> d;
-
-        d["boss_mother_of_saucers"] = DuelScript{
-            "MOTHER-OF-SAUCERS", "playful_major",
-            "LITTLE ONE. YOU ARE VERY FAR FROM YOUR LIGHTS. SPEAK, AND I WILL "
-            "DECIDE IF YOU ARE SIGNAL OR NOISE.",
-            {
-                {K::Talk, "WHY DO YOU WEAR A BODY?",
-                 {{"To be visited.", 30, "YES. A BODY IS A GUEST ROOM. I LIKE YOU ALREADY."},
-                  {"It came with the game.", 10, "HONEST. HONEST IS A COLOR TOO."},
-                  {"Get out of my head.", -20, "I AM NOT IN YOUR HEAD. YOU ARE IN MINE. IT IS ROOMY."}}, 0, 0, "", ""},
-                {K::Echo, "SING MY LIGHTS BACK TO ME.", {}, 4, 25,
-                 "MY DRONES ARE WEEPING SMALL HAPPY SPARKS.",
-                 "OFF-KEY. LIKE A COMET WITH HICCUPS."},
-                {K::Talk, "WHAT IS BIGGER: THE SKY, OR THE WINDOW?",
-                 {{"The window. It holds the sky.", 30, "OH. OH, THAT IS VERY GOOD."},
-                  {"The sky.", 5, "CORRECT, BUT BORING. I HAVE BEEN CORRECT FOR NINE THOUSAND YEARS."},
-                  {"I'm scared of heights.", -10, "THEN LOOK DOWN. DOWN IS ALSO SKY, FROM HERE."}}, 0, 0, "", ""},
-                {K::Beat, "DANCE WITH MY ENGINE. STEP ON THE PULSE.", {}, 6, 25,
-                 "THE SHIP PURRS. YOU HAVE A HULL-SHAPED HEART.",
-                 "YOU STEPPED ON THE SILENCE. IT SQUEAKED."},
-                {K::Talk, "WILL YOU STAY WITH US FOREVER?",
-                 {{"I'll visit.", 35, "VISITING IS HOW FOREVER STAYS FRESH."},
-                  {"Forever is a long time.", 15, "ONLY FROM THE INSIDE."},
-                  {"No.", -15, "NO IS A DOOR. I RESPECT DOORS. BUT I AM SAD IN TWELVE COLORS."}}, 0, 0, "", ""},
-            },
-            "YOU ARE SIGNAL. RIDE THE BEAM UP, LITTLE ONE. THE JEWELED ONES ARE "
-            "EXPECTING YOU. OR WILL HAVE BEEN.",
-            "saucer_song", "",
-        };
-
-        d["boss_choir"] = DuelScript{
-            "THE CHOIR OF TESSELLATORS", "dream_lydian",
-            "WE ARE-- --ARE MANY. WE FINISH-- --EACH OTHER. FINISH US.",
-            {
-                {K::Talk, "THE OPPOSITE OF A DOOR IS--",
-                 {{"--another door.", 30, "--YES! IT FOLDS, IT FOLDS!"},
-                  {"--you.", 20, "--FLATTERING. --WE BLUSH IN HEXAGONS."},
-                  {"--a wall.", -10, "--NO, NO. --WALLS ARE JUST SHY DOORS."}}, 0, 0, "", ""},
-                {K::Echo, "SING THE SHAPE-- --OF THE SHAPE-- --OF THE SHAPE.", {}, 5, 25,
-                 "--PERFECT. --PERFECTLY PERFECT. --STOP, WE'LL CRY GEMS.",
-                 "--A WRONG NOTE! --DELICIOUS. --BUT WRONG."},
-                {K::Talk, "WHEN YOU STOP NAMING THINGS, THEY--",
-                 {{"--start naming you.", 30, "--AND WHAT DO THEY CALL YOU? --SHHH, LISTEN."},
-                  {"--get quiet.", 15, "--QUIET IS JUST LOUD THAT SAT DOWN."},
-                  {"--disappear.", -15, "--NO! --THEY GET BIGGER. --WATCH."}}, 0, 0, "", ""},
-                {K::Beat, "CLAP WITH US-- --WITH ALL OUR HANDS-- --ON THE PULSE.", {}, 8, 25,
-                 "--ONE OF US! --ONE OF US IS MANY OF US!",
-                 "--YOU CLAPPED IN A GAP. --THE GAP IS UPSET."},
-                {K::Talk, "THE SECRET IS--",
-                 {{"--there's no secret, only more choir.", 35, "--HE KNOWS. --SHE KNOWS. --THEY KNOW. --WE KNOW."},
-                  {"--I'm not telling.", 20, "--OH! --YOU'RE ONE OF US ALREADY."},
-                  {"--behind the couch.", -10, "--WE CHECKED. --ONLY COINS AND TIME."}}, 0, 0, "", ""},
-            },
-            "--YOU FINISHED US. --NOW WE CAN START. --GO ON, VISITOR. --THE WAITING "
-            "ROOM IS WAITING.",
-            "choir_echo", "",
-        };
-
-        d["boss_customs"] = DuelScript{
-            "CUSTOMS OFFICER OF THE FOURTH DIMENSION", "tense_chromatic",
-            "STOP. PAPERS. ALL BEINGS PASSING INTO THE NEXT MOMENT MUST DECLARE "
-            "THEIR PAST.",
-            {
-                {K::Talk, "PURPOSE OF YOUR VISIT?",
-                 {{"Visiting.", 30, "...THAT IS CIRCULAR. APPROVED."},
-                  {"I'm lost.", 15, "LOST IS A VALID DESTINATION. STAMP."},
-                  {"Business.", -10, "WHAT BUSINESS? THE BUSINESS OF BEING? FILL OUT FORM INFINITY-B."}}, 0, 0, "", ""},
-                {K::Talk, "DO YOU HAVE ANYTHING TO DECLARE?",
-                 {{"A feeling with no name.", 30, "UNNAMED FEELINGS ARE DUTY-FREE. GO ON."},
-                  {"Snacks.", 10, "ALL SNACKS MUST BE SHARED WITH THE OFFICER. ...THANK YOU."},
-                  {"Nothing.", -15, "NOTHING IS HEAVILY TAXED HERE."}}, 0, 0, "", ""},
-                {K::Echo, "REPEAT THE STAMP SEQUENCE EXACTLY. I AM WATCHING WITH ALL NINE EYES.", {}, 6, 25,
-                 "IMPECCABLE PAPERWORK. I MAY FRAME IT.",
-                 "SMUDGED. AGAIN. I HAVE ALL THE TIME. LITERALLY ALL OF IT."},
-                {K::Talk, "HOW LONG DO YOU INTEND TO STAY IN THE PRESENT?",
-                 {{"Just this once.", 30, "A RETURNING CUSTOMER. EXCELLENT."},
-                  {"Forever.", 5, "NOBODY STAYS FOREVER. IT GETS CROWDED."},
-                  {"What present?", -10, "THIS ONE. NO, THIS ONE. NO-- THERE IT GOES."}}, 0, 0, "", ""},
-                {K::Beat, "STAMP ON THE BEAT. BUREAUCRACY IS A DANCE.", {}, 6, 25,
-                 "STAMP. STAMP. STAMP. ...I FEEL SOMETHING. IS THIS JOY? FORM 3.",
-                 "OFF THE BEAT. THE INK HAS FEELINGS, YOU KNOW."},
-            },
-            "...FINE. FINE! YOU ARE CLEARED. NOW IS RIGHT THROUGH THERE. MIND THE WEIGHT.",
-            "visa_of_now", "",
-        };
-
-        d["boss_weight"] = DuelScript{
-            "THE WEIGHT", "melancholy_a_minor",
-            "Hello. I'm everything you carried in here. I'm very heavy. I'm very you.",
-            {
-                {K::Talk, "Why did you bring me?",
-                 {{"I didn't know I could put you down.", 30, "...Nobody tells you that. I'm sorry nobody told you."},
-                  {"To get stronger.", 10, "You did. Look at your arms. Tiny, but heroic."},
-                  {"I didn't bring you.", -10, "Then who's been holding me all this time?"}}, 0, 0, "", ""},
-                {K::Echo, "Remember how you walked in. Every step.", {}, 5, 25,
-                 "...You remember. I thought only I remembered.",
-                 "That's not how it went. It's okay. Nobody remembers it right."},
-                {K::Talk, "If you put me down, who will you be?",
-                 {{"Lighter.", 30, "Lighter. Yes. Light-er. Made of more light."},
-                  {"I don't know.", 25, "That's the most honest thing anyone has said in here."},
-                  {"Nobody.", -10, "Nobody is just somebody with the volume down."}}, 0, 0, "", ""},
-                {K::Beat, "Walk with me. Slowly. Like a heartbeat.", {}, 8, 25,
-                 "Thump. Thump. There you are.",
-                 "Too fast. You were always too fast. It's okay."},
-                {K::Talk, "Will you miss me?",
-                 {{"A little.", 35, "Good. Missing is how you'll know you're free."},
-                  {"Come with me, but lighter.", 20, "I'll come as a story, not a weight."},
-                  {"No.", 10, "Ha. Liar. Go on anyway."}}, 0, 0, "", ""},
-            },
-            "Okay. I'm putting myself down now. ...Oh. Oh, that's nice. Wake up, "
-            "visitor. Wake up all the way.",
-            "feather_of_letting_go", "bedroom_awake",
-        };
-
-        return d;
-    }();
+std::unordered_map<std::string, DuelScript>& duelRegistry() {
+    static std::unordered_map<std::string, DuelScript> duels;
     return duels;
 }
 
@@ -171,6 +59,27 @@ constexpr double kCharsPerSec = 45.0;
 constexpr double kShowStep = 0.6;  // seconds per arrow in the Echo demo
 
 }  // namespace
+
+int loadDuels(const std::string& assetRoot) {
+    namespace fs = std::filesystem;
+    auto& reg = duelRegistry();
+    reg.clear();
+    const fs::path dir = fs::path(assetRoot) / "duels";
+    if (assetRoot.empty() || !fs::is_directory(dir)) return 0;
+    for (const auto& entry : fs::directory_iterator(dir)) {
+        if (entry.path().extension() != ".txt") continue;
+        std::ifstream f(entry.path());
+        std::stringstream text;
+        text << f.rdbuf();
+        DuelScript script;
+        std::string err;
+        if (parseDuel(text.str(), script, err))
+            reg[entry.path().stem().string()] = std::move(script);
+        else
+            std::cerr << "[duels] " << entry.path().filename().string() << " " << err << "\n";
+    }
+    return static_cast<int>(reg.size());
+}
 
 const DuelScript* duelForBoss(const std::string& bossId) {
     const auto& reg = duelRegistry();

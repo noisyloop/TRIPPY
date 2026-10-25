@@ -1,0 +1,22 @@
+# Dialogue for npc_mother (format: docs/content-format.md)
+alt: talked_mother -> n4
+
+[n0]
+MOM: You slept through the whole afternoon, sweetheart. The Strip is already lighting up out there.
+set: talked_mother
+-> n1
+
+[n1]
+MOM: Your father used to say the neon looks like the city apologizing for the desert. Do you miss him too?
+* Every day. -> n2
+* I don't want to talk about it. -> n3
+
+[n2]
+MOM: Me too. Every single day. Go on, get some air -- just be back before the lights go out.
+set: misses_father
+
+[n3]
+MOM: That's alright. The feeling waits for you either way. Go on, get some air.
+
+[n4]
+MOM: Still here? The casino floor never closes, and neither does a mother's worrying.

@@ -1,0 +1,12 @@
+# Dialogue for npc_hull_whisperer (format: docs/content-format.md)
+
+[n0]
+HULL WHISPERER: Shhh. The ship is dreaming it's a seashell.
+* What does it hear? -> n1
+* Can I dream too? -> n2
+
+[n1]
+HULL WHISPERER: The sea it came from. The sea is also a ship. Everything is, if you hold it to your ear.
+
+[n2]
+HULL WHISPERER: Sweet thing, you've been dreaming since the bedroom.

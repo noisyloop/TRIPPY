@@ -1,0 +1,21 @@
+# Dialogue for npc_hallkeeper (format: docs/content-format.md)
+alt: met_counter -> n4
+
+[n0]
+THE COUNTER: Welcome back. That's visit number... oh. It's always visit number one.
+set: met_counter
+-> n1
+
+[n1]
+THE COUNTER: Ask me something. I'm the part of the hallway that noticed itself.
+* How do I leave? -> n2
+* Why does east go east? -> n3
+
+[n2]
+THE COUNTER: Leaving is a direction. Try one that isn't east. Up is a direction too, if you squint.
+
+[n3]
+THE COUNTER: East is shy. It only ever meets itself.
+
+[n4]
+THE COUNTER: Again! Again! The hallway loves you in a circle.

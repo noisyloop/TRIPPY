@@ -1,0 +1,8 @@
+# Dialogue for npc_librarian (format: docs/content-format.md)
+
+[n0]
+THE LIBRARIAN: Every book here is the same book, read from a different chair.
+-> n1
+
+[n1]
+THE LIBRARIAN: Mind the gaps between the shelves. That's where unread pages fall. You'll fall too, but somewhere nicer.

@@ -1,0 +1,9 @@
+# Dialogue for ufo_glimmer (format: docs/content-format.md)
+
+[n0]
+GLIMMER: Hello, small green certainty. Your planet is very loud from up here.
+set: met_glimmer
+-> n1
+
+[n1]
+GLIMMER: Mostly it hums in the key of worry. We hum back in the key of 'it's okay'.

@@ -1,0 +1,8 @@
+# Dialogue for npc_patient_light (format: docs/content-format.md)
+
+[n0]
+PATIENT LIGHT: I've been waiting here since before light was fast.
+-> n1
+
+[n1]
+PATIENT LIGHT: Don't hurry the Officer. Hurrying is a form, and you haven't filled it out.

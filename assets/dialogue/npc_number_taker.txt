@@ -1,0 +1,8 @@
+# Dialogue for npc_number_taker (format: docs/content-format.md)
+
+[n0]
+NUMBER TAKER: Take a number.
+-> n1
+
+[n1]
+NUMBER TAKER: Your number is the color of a sneeze. You're next. You've always been next.

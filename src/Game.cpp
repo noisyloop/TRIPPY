@@ -46,6 +46,8 @@ Game::Game()
       audio_(assets_),
       roomLoader_(assets_.rootDir()),
       tripFx_(renderer_) {
+    std::cout << "[content] " << loadDialogue(assets_.rootDir()) << " dialogue trees, "
+              << loadDuels(assets_.rootDir()) << " duels\n";
     // Window / taskbar / dock icon (the packaged apps also embed it).
     if (!assets_.rootDir().empty())
         if (SurfacePtr icon{IMG_Load((assets_.rootDir() + "/icon.png").c_str())})

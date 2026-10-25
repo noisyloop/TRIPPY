@@ -1,0 +1,8 @@
+# Dialogue for npc_cow_moon (format: docs/content-format.md)
+
+[n0]
+MOON COW: Moo means 'hello' in eleven dimensions and 'goodbye' in the twelfth.
+-> n1
+
+[n1]
+MOON COW: We weren't abducted. We applied.

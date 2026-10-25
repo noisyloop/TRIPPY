@@ -1,0 +1,38 @@
+# Boss duel for boss_choir (format: docs/content-format.md)
+name: THE CHOIR OF TESSELLATORS
+mood: dream_lydian
+reward: choir_echo
+intro: WE ARE-- --ARE MANY. WE FINISH-- --EACH OTHER. FINISH US.
+victory: --YOU FINISHED US. --NOW WE CAN START. --GO ON, VISITOR. --THE WAITING ROOM IS WAITING.
+
+[talk]
+line: THE OPPOSITE OF A DOOR IS--
+* --another door. | +30 | --YES! IT FOLDS, IT FOLDS!
+* --you. | +20 | --FLATTERING. --WE BLUSH IN HEXAGONS.
+* --a wall. | -10 | --NO, NO. --WALLS ARE JUST SHY DOORS.
+
+[echo]
+line: SING THE SHAPE-- --OF THE SHAPE-- --OF THE SHAPE.
+length: 5
+gain: 25
+success: --PERFECT. --PERFECTLY PERFECT. --STOP, WE'LL CRY GEMS.
+failure: --A WRONG NOTE! --DELICIOUS. --BUT WRONG.
+
+[talk]
+line: WHEN YOU STOP NAMING THINGS, THEY--
+* --start naming you. | +30 | --AND WHAT DO THEY CALL YOU? --SHHH, LISTEN.
+* --get quiet. | +15 | --QUIET IS JUST LOUD THAT SAT DOWN.
+* --disappear. | -15 | --NO! --THEY GET BIGGER. --WATCH.
+
+[beat]
+line: CLAP WITH US-- --WITH ALL OUR HANDS-- --ON THE PULSE.
+length: 8
+gain: 25
+success: --ONE OF US! --ONE OF US IS MANY OF US!
+failure: --YOU CLAPPED IN A GAP. --THE GAP IS UPSET.
+
+[talk]
+line: THE SECRET IS--
+* --there's no secret, only more choir. | +35 | --HE KNOWS. --SHE KNOWS. --THEY KNOW. --WE KNOW.
+* --I'm not telling. | +20 | --OH! --YOU'RE ONE OF US ALREADY.
+* --behind the couch. | -10 | --WE CHECKED. --ONLY COINS AND TIME.

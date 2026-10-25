@@ -1,0 +1,4 @@
+# Dialogue for ufo_drone_a (format: docs/content-format.md)
+
+[n0]
+HONOR DRONE: THE MOTHER LISTENS. SPEAK FROM THE MIDDLE OF YOURSELF.

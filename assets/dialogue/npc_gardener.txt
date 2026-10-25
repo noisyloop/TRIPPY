@@ -1,0 +1,8 @@
+# Dialogue for npc_gardener (format: docs/content-format.md)
+
+[n0]
+GARDENER OF NINE: Most colors grow from light. Nine grows from attention.
+-> n1
+
+[n1]
+GARDENER OF NINE: Pick the seed in the middle. Don't look at it directly. Look at it the way you'd look at a friend.

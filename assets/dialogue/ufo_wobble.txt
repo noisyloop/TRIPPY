@@ -1,0 +1,12 @@
+# Dialogue for ufo_wobble (format: docs/content-format.md)
+
+[n0]
+WOBBLE: We came for the cows but stayed for the colors. Have you seen the color nine?
+* Yes. -> n1
+* What's nine? -> n2
+
+[n1]
+WOBBLE: Then you know why our lights never stop smiling.
+
+[n2]
+WOBBLE: Close all your eyes. Not those ones. The other ones. The sky folds west from here.

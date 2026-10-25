@@ -1,0 +1,38 @@
+# Boss duel for boss_mother_of_saucers (format: docs/content-format.md)
+name: MOTHER-OF-SAUCERS
+mood: playful_major
+reward: saucer_song
+intro: LITTLE ONE. YOU ARE VERY FAR FROM YOUR LIGHTS. SPEAK, AND I WILL DECIDE IF YOU ARE SIGNAL OR NOISE.
+victory: YOU ARE SIGNAL. RIDE THE BEAM UP, LITTLE ONE. THE JEWELED ONES ARE EXPECTING YOU. OR WILL HAVE BEEN.
+
+[talk]
+line: WHY DO YOU WEAR A BODY?
+* To be visited. | +30 | YES. A BODY IS A GUEST ROOM. I LIKE YOU ALREADY.
+* It came with the game. | +10 | HONEST. HONEST IS A COLOR TOO.
+* Get out of my head. | -20 | I AM NOT IN YOUR HEAD. YOU ARE IN MINE. IT IS ROOMY.
+
+[echo]
+line: SING MY LIGHTS BACK TO ME.
+length: 4
+gain: 25
+success: MY DRONES ARE WEEPING SMALL HAPPY SPARKS.
+failure: OFF-KEY. LIKE A COMET WITH HICCUPS.
+
+[talk]
+line: WHAT IS BIGGER: THE SKY, OR THE WINDOW?
+* The window. It holds the sky. | +30 | OH. OH, THAT IS VERY GOOD.
+* The sky. | +5 | CORRECT, BUT BORING. I HAVE BEEN CORRECT FOR NINE THOUSAND YEARS.
+* I'm scared of heights. | -10 | THEN LOOK DOWN. DOWN IS ALSO SKY, FROM HERE.
+
+[beat]
+line: DANCE WITH MY ENGINE. STEP ON THE PULSE.
+length: 6
+gain: 25
+success: THE SHIP PURRS. YOU HAVE A HULL-SHAPED HEART.
+failure: YOU STEPPED ON THE SILENCE. IT SQUEAKED.
+
+[talk]
+line: WILL YOU STAY WITH US FOREVER?
+* I'll visit. | +35 | VISITING IS HOW FOREVER STAYS FRESH.
+* Forever is a long time. | +15 | ONLY FROM THE INSIDE.
+* No. | -15 | NO IS A DOOR. I RESPECT DOORS. BUT I AM SAD IN TWELVE COLORS.

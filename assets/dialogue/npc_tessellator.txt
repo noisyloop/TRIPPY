@@ -1,0 +1,21 @@
+# Dialogue for npc_tessellator (format: docs/content-format.md)
+alt: met_tessellator -> n4
+
+[n0]
+THE TESSELLATOR: OH! A visitor! A visitor made of visitor! I folded this greeting just for you.
+set: met_tessellator
+-> n1
+
+[n1]
+THE TESSELLATOR: It is a gift made of smaller gifts. Hold it with your inside hands.
+* It's beautiful. -> n2
+* I don't understand. -> n3
+
+[n2]
+THE TESSELLATOR: Everything is, once you stop naming it. North is waking up. Waking up is also a room.
+
+[n3]
+THE TESSELLATOR: Perfect! Understanding is just a smaller room. You are much too big for it now.
+
+[n4]
+THE TESSELLATOR: Still unfolding? Good. The temple likes you best half-open.

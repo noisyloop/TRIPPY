@@ -43,7 +43,9 @@ struct DuelScript {
     std::string afterRoom;   // optional: room to wake up in after winning
 };
 
-// Registered in code by boss id ("boss_*"). Null if unknown.
+// Scripts live in assets/duels/<boss_id>.txt (docs/content-format.md).
+// loadDuels (re)reads them all and returns how many parsed. Null if unknown.
+int loadDuels(const std::string& assetRoot);
 const DuelScript* duelForBoss(const std::string& bossId);
 
 // --- Runtime ----------------------------------------------------------------

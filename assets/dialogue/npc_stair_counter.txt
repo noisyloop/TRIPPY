@@ -1,0 +1,8 @@
+# Dialogue for npc_stair_counter (format: docs/content-format.md)
+
+[n0]
+STEP COUNTER: Step four thousand and ninety-six. Or six. I keep losing count of up.
+-> n1
+
+[n1]
+STEP COUNTER: Up is a habit. Try down.

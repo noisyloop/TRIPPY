@@ -1,0 +1,8 @@
+# Dialogue for ufo_spark (format: docs/content-format.md)
+
+[n0]
+SPARK: zzt! i'm a spark from the core. i got out. don't tell.
+-> n1
+
+[n1]
+SPARK: the diamonds go round and round. outside, inside, outside. like breathing.

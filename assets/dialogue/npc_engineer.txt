@@ -1,0 +1,8 @@
+# Dialogue for npc_engineer (format: docs/content-format.md)
+
+[n0]
+THE ENGINEER: I am the engine and the engineer. It saves on staffing.
+-> n1
+
+[n1]
+THE ENGINEER: The core runs on gratitude. Step on the diamonds to reach it. Thank them afterwards.

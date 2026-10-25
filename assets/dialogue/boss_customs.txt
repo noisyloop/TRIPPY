@@ -1,0 +1,4 @@
+# Dialogue for boss_customs (format: docs/content-format.md)
+
+[n0]
+CUSTOMS OFFICER: CLEARED. MOVE ALONG. HAVE A TIMELESS DAY.

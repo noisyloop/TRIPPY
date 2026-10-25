@@ -1,0 +1,4 @@
+# Dialogue for boss_choir (format: docs/content-format.md)
+
+[n0]
+THE CHOIR: --GO ON-- --NORTH-- --WE'LL HUM YOU THROUGH THE DOOR.

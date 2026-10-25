@@ -1,0 +1,8 @@
+# Dialogue for npc_book_that_reads (format: docs/content-format.md)
+
+[n0]
+A BOOK THAT READS: I've been reading you. You're at a good part.
+-> n1
+
+[n1]
+A BOOK THAT READS: Don't skip ahead. The ending is better if you arrive at it.

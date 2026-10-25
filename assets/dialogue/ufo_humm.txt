@@ -1,0 +1,8 @@
+# Dialogue for ufo_humm (format: docs/content-format.md)
+
+[n0]
+HUMM: mmmmmmmmmmmmmmmmmmmm.
+-> n1
+
+[n1]
+: (it is humming the exact shape of your name)
