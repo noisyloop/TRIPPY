@@ -49,6 +49,7 @@ FontPtr openAnyFont(const std::string& root, int ptSize) {
              "/System/Library/Fonts/Supplemental/Andale Mono.ttf",
              "/System/Library/Fonts/Monaco.ttf",
              "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+             "/usr/share/fonts/TTF/DejaVuSansMono.ttf",  // Arch
              "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
              "C:/Windows/Fonts/consola.ttf",
              "C:/Windows/Fonts/lucon.ttf",
@@ -251,30 +252,245 @@ void paintTile(SDL_Surface* surf, const std::string& name) {
     }
 }
 
-// NPC placeholder: a radially symmetric "being" with three eyes. Petal count
-// and hues come from the name hash, so each one is distinct but stable.
-void paintBeing(SDL_Surface* surf, const std::string& name) {
-    uint32_t h = 2166136261u;
-    for (char c : name) { h ^= static_cast<uint8_t>(c); h *= 16777619u; }
-    const int petals = 5 + static_cast<int>(h % 4);
-    const double hue = (h >> 8) % 360;
-    for (int y = 0; y < 32; ++y) {
-        for (int x = 0; x < 32; ++x) {
-            const double cx = x + 0.5 - 16, cy = y + 0.5 - 16;
-            const double r = std::hypot(cx, cy), th = std::atan2(cy, cx);
-            const double edge = 10.5 + 4.5 * std::cos(petals * th);
-            if (r > edge) continue;
-            SDL_Color c = hsvColor(hue + r * 14, 0.85, edge - r < 1.2 ? 1.0 : 0.75 + 0.25 * std::cos(r));
+// An eye of radius r at (ex, ey): white, a colored iris, a dark pupil and a
+// glint. Sub-pixel centers are fine; everything is drawn per pixel.
+void paintEye(SDL_Surface* surf, double ex, double ey, double r, double irisHue) {
+    for (int y = static_cast<int>(ey - r - 1); y <= static_cast<int>(ey + r + 1); ++y)
+        for (int x = static_cast<int>(ex - r - 1); x <= static_cast<int>(ex + r + 1); ++x) {
+            if (x < 0 || y < 0 || x > 31 || y > 31) continue;
+            const double d = std::hypot(x + 0.5 - ex, y + 0.5 - ey);
+            if (d > r) continue;
+            SDL_Color c{255, 255, 255, 255};
+            if (d < r * 0.62) c = hsvColor(irisHue + d * 40, 0.9, 1.0);
+            if (d < r * 0.3) c = SDL_Color{10, 4, 24, 255};
+            if (r >= 2 && std::hypot(x + 0.5 - (ex - r * 0.35), y + 0.5 - (ey - r * 0.35)) < 0.8)
+                c = SDL_Color{255, 255, 255, 255};
             putPixel(surf, x, y, c);
         }
+}
+
+uint32_t nameHash(const std::string& name) {
+    uint32_t h = 2166136261u;
+    for (char c : name) { h ^= static_cast<uint8_t>(c); h *= 16777619u; }
+    return h;
+}
+
+// Which kind of being an NPC id becomes. Keywords in the id pick a shape so
+// cows read as cows and books as books; everyone else is hashed.
+enum class Being { Mandala, EyeCluster, Jelly, Melting, Prism, Spiral, Cow, Screen, Mushroom, Book };
+
+Being beingFor(const std::string& name, uint32_t h) {
+    auto has = [&](const char* k) { return name.find(k) != std::string::npos; };
+    if (has("cow")) return Being::Cow;
+    if (has("tv") || has("screen") || has("channel") || has("ice_machine")) return Being::Screen;
+    if (has("spore") || has("mushroom") || has("myco") || has("fung")) return Being::Mushroom;
+    if (has("book") || has("librar") || has("word")) return Being::Book;
+    if (has("jelly") || has("drown") || has("sax")) return Being::Jelly;
+    if (has("eye") || has("blink")) return Being::EyeCluster;
+    if (has("clock") || has("melt") || has("wallpaper")) return Being::Melting;
+    if (has("prism") || has("tessel") || has("gear") || has("angel")) return Being::Prism;
+    if (has("spiral") || has("sock") || has("monk") || has("stair")) return Being::Spiral;
+    static const Being pool[] = {Being::Mandala, Being::EyeCluster, Being::Jelly,
+                                 Being::Melting, Being::Prism, Being::Spiral};
+    return pool[(h >> 3) % 6];
+}
+
+// NPC placeholder: one of ten strange beings, hues and eye counts from the
+// name hash, so each one is distinct but stable run to run. They are drawn
+// fully saturated; the game wobbles, hue-shifts and haloes them at draw time.
+void paintBeing(SDL_Surface* surf, const std::string& name) {
+    const uint32_t h = nameHash(name);
+    const double hue = (h >> 8) % 360;
+    const double hue2 = hue + 120 + (h >> 20) % 90;
+    auto px = [&](int x, int y, SDL_Color c) { if (x >= 0 && y >= 0 && x < 32 && y < 32) putPixel(surf, x, y, c); };
+
+    switch (beingFor(name, h)) {
+    case Being::Mandala: {
+        // Radial petals, a ring of inner petals and 3-7 eyes in a halo.
+        const int petals = 5 + static_cast<int>(h % 5);
+        for (int y = 0; y < 32; ++y)
+            for (int x = 0; x < 32; ++x) {
+                const double cx = x + 0.5 - 16, cy = y + 0.5 - 16;
+                const double r = std::hypot(cx, cy), th = std::atan2(cy, cx);
+                const double edge = 10.5 + 4.5 * std::cos(petals * th);
+                if (r > edge) continue;
+                const double inner = 5.5 + 2.0 * std::cos(petals * 2 * th + 1.0);
+                SDL_Color c = r < inner ? hsvColor(hue2 + r * 30, 0.9, 1.0)
+                                        : hsvColor(hue + r * 14, 0.85, edge - r < 1.2 ? 1.0 : 0.75 + 0.25 * std::cos(r));
+                px(x, y, c);
+            }
+        const int eyes = 3 + static_cast<int>((h >> 5) % 5);
+        for (int i = 0; i < eyes; ++i) {
+            const double a = -kPi / 2 + i * 2 * kPi / eyes;
+            paintEye(surf, 16 + 6 * std::cos(a), 16 + 6 * std::sin(a), 2.1, hue2 + i * 50);
+        }
+        paintEye(surf, 16, 16, 2.6, hue + 180);
+        break;
     }
-    const SDL_Color white{255, 255, 255, 255}, ink{10, 4, 24, 255};
-    static const int eyes[][2] = {{12, 15}, {20, 15}, {16, 10}};
-    for (const auto& e : eyes) {
-        const int ex = e[0], ey = e[1];
-        SDL_Rect eye{ex - 2, ey - 2, 4, 4}, pupil{ex - 1, ey - 1, 2, 2};
-        SDL_FillRect(surf, &eye, SDL_MapRGBA(surf->format, white.r, white.g, white.b, 255));
-        SDL_FillRect(surf, &pupil, SDL_MapRGBA(surf->format, ink.r, ink.g, ink.b, 255));
+    case Being::EyeCluster: {
+        // A lumpy blob covered in eyes of every size, none looking the same way.
+        for (int y = 0; y < 32; ++y)
+            for (int x = 0; x < 32; ++x) {
+                const double cx = x + 0.5 - 16, cy = y + 0.5 - 17;
+                const double th = std::atan2(cy, cx);
+                const double edge = 12 + 1.8 * std::sin(th * 5 + (h % 7)) + 1.2 * std::sin(th * 9);
+                const double r = std::hypot(cx, cy);
+                if (r < edge) px(x, y, hsvColor(hue + r * 8, 0.8, 0.55 + 0.35 * (1 - r / edge)));
+            }
+        uint32_t s = h | 1u;
+        for (int i = 0; i < 9; ++i) {
+            s = s * 1664525u + 1013904223u;
+            const double a = (s >> 8) % 628 / 100.0, rr = (s >> 4) % 9;
+            const double size = 1.4 + (s >> 20) % 3;
+            paintEye(surf, 16 + rr * std::cos(a), 17 + rr * std::sin(a), size, hue2 + i * 37);
+        }
+        break;
+    }
+    case Being::Jelly: {
+        // Translucent dome, glowing rim, tentacles that wave (at draw time
+        // the whole sprite also wobbles, which sells it).
+        for (int y = 0; y < 32; ++y)
+            for (int x = 0; x < 32; ++x) {
+                const double cx = x + 0.5 - 16, cy = y + 0.5 - 14;
+                const double r = std::hypot(cx, cy * 1.3);
+                if (cy < 2 && r < 12) {
+                    const bool rim = r > 10.5 || std::fabs(cy - 1.5) < 0.6;
+                    px(x, y, hsvColor(hue + r * 6, rim ? 0.4 : 0.7, 1.0, rim ? 255 : 150));
+                }
+            }
+        for (int t = 0; t < 6; ++t) {
+            const double baseX = 6.5 + t * 3.8;
+            for (int y = 16; y < 32; ++y) {
+                const double x = baseX + 1.8 * std::sin(y * 0.55 + t * 1.3);
+                px(static_cast<int>(x), y, hsvColor(hue2 + y * 9, 0.75, 1.0, static_cast<Uint8>(255 - (y - 16) * 10)));
+            }
+        }
+        paintEye(surf, 12, 9, 2.0, hue2);
+        paintEye(surf, 20, 9, 2.0, hue2 + 60);
+        paintEye(surf, 16, 5, 1.5, hue2 + 120);
+        break;
+    }
+    case Being::Melting: {
+        // A beaming face that is sliding down off its own head.
+        for (int y = 0; y < 32; ++y)
+            for (int x = 0; x < 32; ++x) {
+                const double cx = x + 0.5 - 16, cy = y + 0.5 - 12;
+                const double r = std::hypot(cx, cy);
+                const double drip = 12 + 9 * std::max(0.0, std::sin(x * 1.1 + (h % 5))) * std::max(0.0, std::sin(x * 0.37));
+                const bool inFace = r < 10 || (std::fabs(cx) < 9.5 && cy > 0 && cy < drip);
+                if (!inFace) continue;
+                px(x, y, hsvColor(hue + y * 6, 0.85, 0.95 - std::max(0.0, cy) * 0.012));
+            }
+        paintEye(surf, 11.5, 10, 2.4, hue2);
+        paintEye(surf, 20.5, 11, 2.0, hue2 + 90);
+        for (int x = 9; x <= 23; ++x) {  // a smile that has gone a bit wavy
+            const int y = static_cast<int>(16 + 2.5 * std::sin((x - 9) / 14.0 * kPi) + std::sin(x * 1.3));
+            px(x, y, SDL_Color{20, 6, 30, 255});
+            px(x, y + 1, SDL_Color{255, 90, 180, 255});
+        }
+        break;
+    }
+    case Being::Prism: {
+        // A rotating-looking diamond of nested triangles with a crown of eyes.
+        for (int y = 0; y < 32; ++y)
+            for (int x = 0; x < 32; ++x) {
+                const double cx = x + 0.5 - 16, cy = y + 0.5 - 18;
+                const double m = std::fabs(cx) * 1.2 + std::fabs(cy);
+                if (m > 13) continue;
+                const int band = static_cast<int>(m / 2.2);
+                px(x, y, hsvColor(hue + band * 47 + (cx > 0 ? 20 : 0), 0.85, band % 2 ? 1.0 : 0.65));
+            }
+        for (int i = 0; i < 5; ++i)
+            paintEye(surf, 6 + i * 5, 3.5 + (i % 2) * 1.5, 1.7, hue2 + i * 72);
+        paintEye(surf, 16, 18, 3.0, hue + 180);
+        break;
+    }
+    case Being::Spiral: {
+        // A snail-shell galaxy with one enormous eye at its center.
+        for (int y = 0; y < 32; ++y)
+            for (int x = 0; x < 32; ++x) {
+                const double cx = x + 0.5 - 16, cy = y + 0.5 - 16;
+                const double r = std::hypot(cx, cy), th = std::atan2(cy, cx);
+                if (r > 14) continue;
+                const double arm = std::sin(th * 2 - r * 0.9 + (h % 6));
+                px(x, y, hsvColor(hue + r * 18 + arm * 30, 0.85, arm > 0 ? 1.0 : 0.45));
+            }
+        paintEye(surf, 16, 16, 4.5, hue2);
+        break;
+    }
+    case Being::Cow: {
+        // A cow with a third eye and spots that are tiny galaxies.
+        auto fill = [&](int x, int y, int w, int hh, SDL_Color c) {
+            SDL_Rect rr{x, y, w, hh};
+            SDL_FillRect(surf, &rr, SDL_MapRGBA(surf->format, c.r, c.g, c.b, c.a));
+        };
+        fill(5, 10, 22, 14, {245, 240, 250, 255});        // body
+        fill(7, 24, 3, 6, {230, 225, 240, 255});
+        fill(22, 24, 3, 6, {230, 225, 240, 255});
+        fill(9, 3, 14, 10, {245, 240, 250, 255});         // head
+        fill(7, 2, 3, 3, hsvColor(hue2, 0.8, 1.0));       // horns
+        fill(22, 2, 3, 3, hsvColor(hue2, 0.8, 1.0));
+        fill(11, 10, 10, 4, hsvColor(hue + 330, 0.45, 1.0));  // snout
+        uint32_t s = h | 1u;
+        for (int i = 0; i < 5; ++i) {
+            s = s * 1664525u + 1013904223u;
+            const int sx = 7 + static_cast<int>((s >> 8) % 17), sy = 14 + static_cast<int>((s >> 16) % 8);
+            for (int y = -2; y <= 2; ++y)
+                for (int x = -2; x <= 2; ++x)
+                    if (x * x + y * y <= 5) px(sx + x, sy + y, hsvColor(hue + i * 60 + (x + y) * 20, 0.9, 0.9));
+        }
+        paintEye(surf, 12.5, 7, 1.6, hue2);
+        paintEye(surf, 19.5, 7, 1.6, hue2);
+        paintEye(surf, 16, 4.5, 1.4, hue + 180);
+        break;
+    }
+    case Being::Screen: {
+        // An old TV for a head showing a color-bar sunrise and one eye.
+        auto fill = [&](int x, int y, int w, int hh, SDL_Color c) {
+            SDL_Rect rr{x, y, w, hh};
+            SDL_FillRect(surf, &rr, SDL_MapRGBA(surf->format, c.r, c.g, c.b, c.a));
+        };
+        fill(4, 6, 24, 18, {60, 40, 80, 255});
+        for (int i = 0; i < 7; ++i) fill(6 + i * 3, 8, 3, 14, hsvColor(i * 51 + hue, 0.85, 1.0));
+        fill(9, 1, 2, 6, {200, 200, 220, 255});           // antennae
+        fill(21, 1, 2, 6, {200, 200, 220, 255});
+        fill(12, 24, 8, 4, {60, 40, 80, 255});             // neck
+        fill(8, 27, 16, 5, hsvColor(hue2, 0.6, 0.8));      // shoulders
+        paintEye(surf, 16, 15, 4.0, hue2);
+        break;
+    }
+    case Being::Mushroom: {
+        // A spotted cap the size of a cathedral bell over a pale stem with eyes.
+        for (int y = 0; y < 32; ++y)
+            for (int x = 0; x < 32; ++x) {
+                const double cx = x + 0.5 - 16, cy = y + 0.5 - 13;
+                const double r = std::hypot(cx, cy * 1.6);
+                if (cy < 1 && r < 15) {
+                    const bool spot = std::sin(x * 1.3) * std::sin(y * 1.7 + 0.5) > 0.55;
+                    px(x, y, spot ? SDL_Color{255, 250, 235, 255} : hsvColor(hue + r * 5, 0.9, 0.95));
+                } else if (cy >= 1 && std::fabs(cx) < 5 + cy * 0.1 && y < 31) {
+                    px(x, y, hsvColor(hue2, 0.15, 0.95));
+                }
+            }
+        paintEye(surf, 13.5, 19, 1.7, hue2);
+        paintEye(surf, 18.5, 19, 1.7, hue2 + 40);
+        break;
+    }
+    case Being::Book: {
+        // An open book with an eye on each page and a tongue for a bookmark.
+        for (int y = 6; y < 27; ++y)
+            for (int x = 2; x < 30; ++x) {
+                const double sag = std::fabs(x + 0.5 - 16) * 0.25;
+                if (y < 6 + 4 - sag || y > 26 - sag) continue;
+                const bool line = (y % 3 == 0) && x % 16 > 2 && x % 16 < 13;
+                px(x, y, line ? hsvColor(hue + x * 10, 0.6, 0.6) : SDL_Color{250, 245, 235, 255});
+            }
+        for (int y = 6; y < 27; ++y) px(15, y, hsvColor(hue, 0.8, 0.5)), px(16, y, hsvColor(hue, 0.8, 0.5));
+        for (int y = 24; y < 31; ++y) px(16, y, SDL_Color{255, 80, 140, 255}), px(17, y, SDL_Color{255, 80, 140, 255});
+        paintEye(surf, 9, 15, 3.2, hue2);
+        paintEye(surf, 23, 15, 3.2, hue2 + 120);
+        break;
+    }
     }
 }
 

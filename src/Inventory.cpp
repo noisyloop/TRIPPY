@@ -20,6 +20,15 @@ std::string Inventory::displayName(const std::string& itemId) {
         {"visa_of_now", "Visa of Now"},
         {"feather_of_letting_go", "Feather of Letting Go"},
         {"the_color_nine", "The Color Nine"},
+        {"kaleidoscope_lens", "Kaleidoscope Lens"},
+        {"prism_shard", "Prism Shard"},
+        {"unblinking_fig", "Unblinking Fig"},
+        {"spore_of_yes", "Spore of Yes"},
+        {"liquid_clock", "Liquid Clock"},
+        {"jar_of_ocean", "Jar of Ocean"},
+        {"forgotten_word", "A Forgotten Word"},
+        {"tiny_you", "Tiny You"},
+        {"lost_umbrella", "Lost Umbrella"},
     };
     auto it = names.find(itemId);
     if (it != names.end()) return it->second;

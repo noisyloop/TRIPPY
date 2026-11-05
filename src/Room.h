@@ -57,6 +57,11 @@ public:
     double trip() const { return trip_; }
     void setKaleidoscope(double k) { kaleido_ = k; }
     double kaleidoscope() const { return kaleido_; }
+    // melt = columns slide down like wet paint; chroma = RGB split.
+    void setMelt(double m) { melt_ = m; }
+    double melt() const { return melt_; }
+    void setChroma(double c) { chroma_ = c; }
+    double chroma() const { return chroma_; }
 
     // A locked transition only opens once the story flag is set.
     void setLock(Direction d, std::string flag) { locks_[d] = std::move(flag); }
@@ -93,6 +98,8 @@ private:
     std::string onEnterFlag_;
     double trip_ = 0.3;
     double kaleido_ = 0.0;
+    double melt_ = 0.0;
+    double chroma_ = 0.0;
     std::unordered_map<Direction, std::string> transitions_;
     std::unordered_map<Direction, std::string> locks_;
     std::set<Direction> beams_;

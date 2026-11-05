@@ -1,6 +1,6 @@
 # Nine grows from attention. Four warps hop you around the corners.
 music_mood = calm_pentatonic
-transitions = east:fractal_library
+transitions = east:fractal_library north:eyeball_orchard south:mushroom_cathedral
 npcs = 0:npc_gardener 1:npc_seedling
 items = 0:color_nine_seed
 trip = 0.75

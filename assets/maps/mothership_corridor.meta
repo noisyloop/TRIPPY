@@ -2,6 +2,7 @@
 music_mood = tense_chromatic
 transitions = south:saucer_meadow north:observation_deck east:engine_room west:cow_lounge
 npcs = 0:ufo_greeter 1:npc_hull_whisperer
-trip = 0.8
+trip = 0.85
+chroma = 0.35
 on_enter_flag = boarded_mothership
 wander = npc_hull_whisperer

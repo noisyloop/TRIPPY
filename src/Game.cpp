@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <optional>
 
 namespace {
 
@@ -24,6 +25,12 @@ MoodPalette paletteFor(const std::string& mood) {
         return {{88, 70, 100, 255}, {40, 26, 56, 255}, {66, 96, 70, 255}, {255, 214, 92, 255}, {40, 22, 44, 255}};
     if (mood == "dream_lydian")
         return {{62, 58, 96, 255}, {26, 24, 52, 255}, {58, 66, 96, 255}, {170, 120, 232, 255}, {26, 14, 44, 255}};
+    if (mood == "spore_whole_tone")
+        return {{60, 88, 70, 255}, {70, 20, 60, 255}, {96, 60, 120, 255}, {255, 120, 60, 255}, {18, 30, 20, 255}};
+    if (mood == "melting_waltz")
+        return {{110, 60, 90, 255}, {60, 30, 90, 255}, {120, 90, 40, 255}, {90, 255, 220, 255}, {40, 12, 40, 255}};
+    if (mood == "static_phrygian")
+        return {{70, 70, 70, 255}, {30, 40, 60, 255}, {90, 80, 50, 255}, {80, 255, 120, 255}, {12, 12, 18, 255}};
     // calm_pentatonic + default
     return {{66, 60, 88, 255}, {30, 24, 50, 255}, {56, 80, 70, 255}, {214, 62, 106, 255}, {24, 16, 40, 255}};
 }
@@ -40,7 +47,7 @@ SDL_Color trippyTint(SDL_Color base, double val, double trip, double t, int tx, 
 
 }  // namespace
 
-Game::Game()
+Game::Game(const ShotRequest* shot)
     : renderer_(),
       assets_(renderer_),
       audio_(assets_),
@@ -51,7 +58,11 @@ Game::Game()
         if (SurfacePtr icon{IMG_Load((assets_.rootDir() + "/icon.png").c_str())})
             renderer_.setIcon(icon.get());
 
-    if (auto data = saveGame_.read()) {
+    if (shot) {
+        shotMode_ = true;
+        shot_ = *shot;
+    }
+    if (auto data = shotMode_ ? std::optional<SaveData>{} : saveGame_.read()) {
         std::cout << "[save] resuming from " << saveGame_.path() << "\n";
         inventory_.setItems(data->inventory);
         flags_ = data->flags;
@@ -70,6 +81,28 @@ Game::Game()
     // The title screen gets its own dreamy theme; the room's mood crossfades
     // in once the player holds a key to start.
     audio_.playMood("dream_lydian");
+
+    if (shotMode_ && shot_.room != "title") {
+        enterRoom(shot_.room, nullptr, false);
+        state_ = State::Exploring;
+        if (!shot_.talk.empty())
+            for (const auto& e : room_->entities())
+                if (e->id() == shot_.talk) {
+                    // Stand next to them, facing them, then say hello.
+                    static const int nb[4][2] = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}};
+                    for (const auto& d : nb) {
+                        const int tx = e->tileX() + d[0], ty = e->tileY() + d[1];
+                        const Tile t = room_->tileAt(tx, ty);
+                        if ((t == Tile::Floor || t == Tile::Grass || t == Tile::Mirror || t == Tile::Stairs)
+                            && !room_->entityAt(tx, ty)) {
+                            player_.setTilePosition(tx, ty);
+                            break;
+                        }
+                    }
+                    startConversation(*e);
+                    break;
+                }
+    }
 }
 
 void Game::enterRoom(const std::string& name, const Direction* fromDir, bool autosave) {
@@ -126,6 +159,7 @@ void Game::enterRoom(const std::string& name, const Direction* fromDir, bool aut
 }
 
 void Game::save() {
+    if (shotMode_) return;
     SaveData data;
     data.room = room_->name();
     data.playerX = player_.x();
@@ -144,6 +178,11 @@ void Game::run() {
         Uint64 now = SDL_GetPerformanceCounter();
         double dt = std::min((now - prev) / freq, 0.05);  // clamp hitches
         prev = now;
+        if (shotMode_) {
+            dt = 1.0 / 60.0;  // deterministic-ish: same number of frames every run
+            if (renderer_.captured()) break;
+            if (worldTime_ + dt >= shot_.seconds) renderer_.requestCapture(shot_.out);
+        }
         worldTime_ += dt;
 
         input_.beginFrame();
@@ -200,11 +239,16 @@ void Game::update(double dt) {
     // Items that change things: the marble opens the third eye a little
     // wider everywhere; the pebble hums along with the melody.
     const double tripTarget = std::min(1.0, room_->trip() + (inventory_.has("third_eye_marble") ? 0.2 : 0.0));
+    // Kaleidoscope Lens: every room mirrors a little. Prism Shard: RGB split.
+    const double kaleidoTarget = std::min(1.0, room_->kaleidoscope() + (inventory_.has("kaleidoscope_lens") ? 0.25 : 0.0));
+    const double chromaTarget = std::min(1.0, room_->chroma() + 0.25 * trip_ + (inventory_.has("prism_shard") ? 0.35 : 0.0));
     audio_.setHarmony(inventory_.has("humming_pebble"));
     const double ease = std::min(1.0, dt * 1.5);
     trip_ += (tripTarget - trip_) * ease;
     room_->setPlayer(player_.x(), player_.y(), state_ == State::Exploring);
-    kaleido_ += (room_->kaleidoscope() - kaleido_) * ease;
+    kaleido_ += (kaleidoTarget - kaleido_) * ease;
+    melt_ += (room_->melt() - melt_) * ease;
+    chroma_ += (chromaTarget - chroma_) * ease;
 
     // Afterimages: sample the player every 40ms while moving, decay when still.
     trailClock_ += dt;
@@ -374,7 +418,13 @@ void Game::tryInteract() {
             return;
         }
     }
-    if (e->kind() == EntityKind::Npc) {
+    if (e->kind() == EntityKind::Npc)
+        startConversation(*e);
+}
+
+void Game::startConversation(Entity& entity) {
+    Entity* e = &entity;
+    {
         const DialogueTree* tree = dialogueForNpc(e->id());
         if (!tree) {
             std::cerr << "[dialogue] no tree registered for npc '" << e->id() << "'\n";
@@ -389,7 +439,7 @@ void Game::tryInteract() {
             audio_.playSfx("pickup");
         };
         fx.onCharTyped = [this] { audio_.playSfx("blip"); };
-        dialogue_.start(*tree, std::move(fx));
+        dialogue_.start(*tree, std::move(fx), e->sprite());
         state_ = State::InDialogue;
     }
 }
@@ -476,7 +526,15 @@ void Game::render() {
                                     2, 2, c);
         }
     renderWorld(fxTrip, pulse);
-    tripFx_.end(worldTime_, calm() ? 0.0 : fxTrip * (0.75 + 0.5 * pulse), calm() ? 0.0 : kaleido_,
+    TripParams fx;
+    if (!calm()) {
+        fx.warp = fxTrip * (0.75 + 0.5 * pulse);
+        fx.kaleido = kaleido_;
+        fx.chroma = std::min(1.0, chroma_ * (0.6 + 0.6 * pulse));
+        fx.breathe = fxTrip * pulse;
+        fx.melt = melt_;
+    }
+    tripFx_.end(worldTime_, fx,
                 static_cast<int>((player_.x() + kTile / 2 - camX) * zoom),
                 static_cast<int>((player_.y() + kTile / 2 - camY) * zoom), bg);
 
@@ -488,7 +546,7 @@ void Game::render() {
         inventory_.render(renderer_, assets_);
     renderToast();
     if (dialogue_.active())
-        dialogue_.render(renderer_, assets_);
+        dialogue_.render(renderer_, assets_, worldTime_, calm() ? 0.0 : std::max(0.35, fxTrip), pulse);
     renderStatusBar();
 
     renderer_.present();
@@ -620,14 +678,18 @@ void Game::renderWorld(double fxTrip, double pulse) {
         e->drawOffset(ox, oy);
         int px = e->tileX() * kTile + static_cast<int>(ox);
         int py = e->tileY() * kTile + static_cast<int>(oy);
-        if (e->id().rfind("boss_", 0) == 0) {
-            double bob = std::sin(worldTime_ * 1.4) * 3.0;
-            renderer_.drawSprite(assets_.sprite(e->sprite()), px - kTile / 2,
-                                 py - kTile + static_cast<int>(bob), kTile * 2, kTile * 2);
-        } else if (e->kind() == EntityKind::Npc) {
-            double bob = std::sin(worldTime_ * 2.2 + e->tileX()) * 2.0;
-            renderer_.drawSprite(assets_.sprite(e->sprite()), px,
-                                 py + static_cast<int>(bob), kTile, kTile);
+        if (e->kind() == EntityKind::Npc) {
+            // Everyone you can talk to is alive: breathing, swaying, haloed,
+            // trailing echoes. Bosses twice the size.
+            const bool boss = e->id().rfind("boss_", 0) == 0;
+            unsigned seed = 0;
+            for (char c : e->id()) seed = seed * 31 + static_cast<unsigned char>(c);
+            const double bob = std::sin(worldTime_ * (boss ? 1.4 : 2.2) + e->tileX()) * (boss ? 3.0 : 2.0);
+            const float size = static_cast<float>(boss ? kTile * 2 : kTile);
+            const float cx = static_cast<float>(px + kTile / 2 - renderer_.cameraX());
+            const float cy = static_cast<float>(py + (boss ? 0 : kTile / 2) + bob - renderer_.cameraY());
+            drawLivingSprite(renderer_.sdl(), assets_.sprite(e->sprite()), cx, cy, size, worldTime_,
+                             calm() ? 0.0 : std::clamp(0.35 + fxTrip, 0.0, 1.0), pulse, seed);
         } else {
             // Items hover and glimmer so they read as collectible.
             double hover = std::sin(worldTime_ * 3.0) * 3.0;

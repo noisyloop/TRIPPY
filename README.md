@@ -14,6 +14,18 @@ lets the melody dissolve into a breathing drone. The visuals pulse on its
 beat. Missing sprites are generated at runtime as labeled colored squares,
 so the game is fully playable before a single asset exists.
 
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Title screen: a turning mandala behind the TRIPPY logo](docs/screenshots/title.png) | ![The Tessellator mid-conversation in the kaleidoscope temple](docs/screenshots/tessellation_temple.png) |
+| ![Channel Zero, a TV-headed being, in the static motel](docs/screenshots/static_motel.png) | ![The Melting Clock in the dripping ballroom](docs/screenshots/melting_ballroom.png) |
+| ![The Jelly Oracle on the milk ocean](docs/screenshots/milk_ocean.png) | ![The Spore Bishop in the mushroom cathedral](docs/screenshots/mushroom_cathedral.png) |
+| ![The Eye Tree in the eyeball orchard](docs/screenshots/eyeball_orchard.png) | ![Saucers inside the mothership corridor](docs/screenshots/mothership_corridor.png) |
+
+Regenerate them with `tools/screenshots.sh` (see "Screenshots from the
+command line" below).
+
 ## Download
 
 - **macOS** (Apple Silicon + Intel): [TRIPPY-macos.dmg](https://github.com/noisyloop/TRIPPY/releases/latest/download/TRIPPY-macos.dmg)
@@ -131,13 +143,15 @@ src/
   Entity.{h,cpp}      Base for NPCs / items / triggers
   NPC.{h,cpp}         NPC entity (dialogue looked up by id)
   UFO.{h,cpp}         Drifting saucer NPC (ids starting with ufo_)
-  TripFX.{h,cpp}      Offscreen playfield, sine warp strips, kaleidoscope, HSV helpers
+  TripFX.{h,cpp}      Offscreen playfield, warp, kaleidoscope, melt, RGB split, living sprites
   Dialogue.{h,cpp}    Dialogue trees (in code) + typewriter dialogue box
   Inventory.{h,cpp}   Item list + display names + overlay
   SaveGame.{h,cpp}    JSON save/load (hand-rolled, zero deps)
   Audio.{h,cpp}       SDL_mixer device, SFX, music-file override, synth hook
   ChiptuneSynth.{h,cpp} Procedural 4-voice chiptune + mood registry + crossfade
   Assets.{h,cpp}      Sprite/font/sfx cache with placeholder generation
+tools/
+  screenshots.sh      regenerates docs/screenshots/ headlessly
 assets/
   maps/     one .txt + .meta per room
   sprites/  drop PNGs here (see "Swapping in real art")
@@ -170,9 +184,11 @@ assets/
    items = 0:room_key
    # optional: set a story flag the moment the player walks in
    on_enter_flag = reached_myroom
-   # optional psychedelia, 0..1 (default trip 0.3, kaleidoscope 0)
+   # optional psychedelia, 0..1 (default trip 0.3, the rest 0)
    trip = 0.6           # hue cycling + screen warp + afterimage trails
    kaleidoscope = 0.6   # 12-wedge mirror around the player
+   melt = 0.4           # columns slide down and back like wet paint
+   chroma = 0.5         # RGB channel split (trip adds a little on its own)
    # optional gates and tricks
    locks = north:beat_boss_choir   # door opens once that flag is set
    beam = north                    # leaving that way plays the tractor beam
@@ -196,6 +212,13 @@ assets/
    (`src/Dialogue.cpp`). New item? Add a display name in
    `Inventory::displayName` (unknown ids fall back to de-underscored text).
 
+   Dialogue text takes three inline effects; the marker characters are
+   not shown: `~wavy~` letters ride a wave, `*rainbow*` letters cycle
+   colors, `^shaky^` letters jitter. The speaker's name is always a
+   rainbow, and the speaker appears alive in a portrait window beside the
+   text (it breathes, sways, sheds colored echoes and wears a halo; in calm
+   mode it sits still).
+
 No C++ changes are needed for the room itself.
 
 **Bosses**: an npc id starting with `boss_` that has a `DuelScript` in
@@ -213,8 +236,19 @@ infinite_stair → tessellation_temple (the Choir) → waiting_room (Customs
 Officer) → weight_chamber (The Weight) → bedroom_awake. Bring every floor
 item to the end for the second ending.
 
+**Side rooms** (optional, each off a door that used to be a wall):
+`hallway` south → `static_motel` (TV-headed guests, a pool showing every
+channel); `color_nine_garden` north → `eyeball_orchard` and south →
+`mushroom_cathedral`; `engine_room` east → `kaleido_core`; `cow_lounge` west
+→ `milk_ocean` (fall off the edge and you land back at the door);
+`tessellation_temple` east → `melting_ballroom` and west →
+`inside_the_marble`; `waiting_room` east → `lost_and_found`. Their items
+aren't needed for either ending.
+
 **Items that do things**: the Third Eye Marble adds +0.2 trip everywhere;
-the Humming Pebble adds a harmony voice a third above the melody.
+the Humming Pebble adds a harmony voice a third above the melody; the
+Kaleidoscope Lens (`kaleido_core`) mirrors every room a little; the Prism
+Shard (`static_motel`) splits every room into red, green and blue.
 
 **Impossible exits**: a transition may point at the room itself
 (`east:mobius_hall` inside `mobius_hall` loops forever), and if the target
@@ -272,14 +306,31 @@ placeholder, so you can replace art one file at a time:
 
 Missing art is generated: player frames → pixel alien, `ufo_*` → pixel
 saucer, `tile_*` → grayscale sacred geometry (seed-of-life floor, hexagram
-walls, spiral grass, vesica-eye doors), `npc_*` → a radial three-eyed
-being, items → a hexagram gem. Tiles are tinted with a hue-cycled color
+walls, spiral grass, vesica-eye doors), items → a hexagram gem, and `npc_*`
+→ one of ten beings (mandala, eye cluster, jelly, melting face, prism,
+spiral, third-eyed cow, TV head, mushroom, book with eyes). Keywords in the
+id pick the shape (`cow`, `tv`/`channel`, `spore`/`mushroom`, `book`,
+`jelly`, `eye`/`blink`, `clock`/`melt`, ...); other ids are hashed, as are
+colors and eye counts (`beingFor` in `Assets.cpp`). Tiles are tinted with a hue-cycled color
 every frame, so real tile PNGs get partially tinted too (by the room's
 `trip`). The older SORRY art lives in `assets/sprites/legacy/` and is not
 loaded (move a file back up to use it).
 
 Any new NPC/item id you invent in a `.meta` file automatically looks for
 `assets/sprites/<id>.png` the same way.
+
+## Screenshots from the command line
+
+```sh
+SDL_VIDEODRIVER=offscreen ./build/trippy --shot melting_ballroom shot.png \
+    --talk npc_melting_clock --seconds 2.6 --size 1280x720
+```
+
+`--shot <room|title> <out.png>` runs the game headless for a fixed number
+of frames and writes one PNG; `--talk <npc_id>` stands you next to that NPC
+mid-conversation. Shot mode is silent and never reads or writes the save
+file. `tools/screenshots.sh` regenerates every image in
+`docs/screenshots/`.
 
 ## Save file
 

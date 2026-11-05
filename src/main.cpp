@@ -2,7 +2,10 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 
+#include <cstdio>
+#include <cstdlib>
 #include <exception>
+#include <string>
 #include <iostream>
 
 #include "Game.h"
@@ -31,10 +34,32 @@ struct SdlRuntime {
 }  // namespace
 
 // SDL wants this exact signature (SDL2main supplies WinMain on Windows).
-int main(int, char*[]) {
+int main(int argc, char* argv[]) {
+    // trippy --shot <room|title> <out.png> [--talk <npc_id>] [--seconds S] [--size WxH]
+    ShotRequest shot;
+    bool shooting = false;
+    for (int i = 1; i < argc; ++i) {
+        std::string a = argv[i];
+        if (a == "--shot" && i + 2 < argc) {
+            shooting = true;
+            shot.room = argv[++i];
+            shot.out = argv[++i];
+        } else if (a == "--talk" && i + 1 < argc) {
+            shot.talk = argv[++i];
+        } else if (a == "--seconds" && i + 1 < argc) {
+            shot.seconds = std::atof(argv[++i]);
+        } else if (a == "--size" && i + 1 < argc) {
+            std::sscanf(argv[++i], "%dx%d", &shot.width, &shot.height);
+        }
+    }
+    if (shooting) {
+        SDL_setenv("SDL_AUDIODRIVER", "dummy", 0);  // screenshots are silent
+        Renderer::forcedW = shot.width;
+        Renderer::forcedH = shot.height;
+    }
     try {
         SdlRuntime sdl;
-        Game game;
+        Game game(shooting ? &shot : nullptr);
         game.run();
     } catch (const std::exception& e) {
         std::cerr << "FATAL: " << e.what() << "\n";

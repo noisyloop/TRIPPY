@@ -2,5 +2,6 @@
 music_mood = melancholy_a_minor
 transitions = south:waiting_room
 npcs = 0:boss_weight
-trip = 0.9
+trip = 0.95
+melt = 0.45
 kaleidoscope = 0.3

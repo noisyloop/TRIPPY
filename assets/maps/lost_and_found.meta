@@ -1,0 +1,8 @@
+# Where lost things go. Shelves of single socks, unsent letters, the word you forgot.
+music_mood = dread_diminished
+transitions = west:waiting_room
+npcs = 0:npc_sock_prophet 1:npc_forgotten_word
+items = 0:lost_umbrella
+trip = 0.7
+melt = 0.3
+chroma = 0.4

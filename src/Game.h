@@ -19,10 +19,21 @@
 
 #include <deque>
 
+// Headless screenshot request (trippy --shot <room|title> <out.png> ...):
+// skips the save file entirely, runs a fixed number of frames, writes a PNG.
+struct ShotRequest {
+    std::string room;    // "title" = the title screen
+    std::string out;     // PNG path
+    std::string talk;    // npc id to be mid-conversation with (optional)
+    double seconds = 2.5;
+    int width = 1280, height = 720;
+};
+
 // Top-level game: owns every subsystem, runs the loop, switches rooms.
 class Game {
 public:
-    Game();  // throws std::runtime_error if a critical asset is missing
+    // throws std::runtime_error if a critical asset is missing
+    explicit Game(const ShotRequest* shot = nullptr);
     void run();
 
 private:
@@ -80,6 +91,11 @@ private:
     // Effect levels ease toward the current room's .meta values.
     double trip_ = 0;
     double kaleido_ = 0;
+    double melt_ = 0;
+    double chroma_ = 0;
+    bool shotMode_ = false;   // never read or write the save in shot mode
+    ShotRequest shot_;
+    void startConversation(Entity& e);
     struct Ghost { double x, y; std::string frame; };
     std::deque<Ghost> trail_;  // player afterimages, newest first
     double trailClock_ = 0;

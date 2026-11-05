@@ -1,0 +1,9 @@
+# A motel off the edge of the Strip. Every room has a TV; every TV has a guest.
+# The pool shows all the channels at once.
+music_mood = static_phrygian
+transitions = north:hallway
+npcs = 0:npc_tv_head 1:npc_ice_machine 2:npc_channel_surfer
+items = 0:prism_shard
+wander = npc_channel_surfer
+trip = 0.6
+chroma = 0.7

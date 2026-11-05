@@ -33,6 +33,9 @@ const std::vector<Mood>& moodTable() {
         {"dread_diminished",   {0, 2, 3, 5, 6, 8, 9, 11},   55,  66, 0xD3AD, 0.125f, 0.90f, 2, {wholeTone, doubleHarm, locrian}},
         {"playful_major",      {0, 2, 4, 5, 7, 9, 11},      62, 132, 0x91A9, 0.50f, 1.00f, 3, {lydDom, mixolydian, majPent}},
         {"dream_lydian",       {0, 2, 4, 6, 7, 9, 11},      59,  92, 0xD12A, 0.375f, 0.85f, 2, {wholeTone, lydAug, majPent}},
+        {"spore_whole_tone",   {0, 2, 4, 6, 8, 10},         53,  70, 0x5904, 0.125f, 0.85f, 1, {lydAug, doubleHarm, wholeTone}},
+        {"melting_waltz",      {0, 2, 4, 6, 8, 9, 11},      61, 104, 0xE17D, 0.375f, 0.90f, 2, {lydAug, lydDom, wholeTone}},
+        {"static_phrygian",    {0, 1, 3, 5, 7, 8, 10},      56, 124, 0x57A7, 0.25f, 0.90f, 4, {phrygDom, locrian, doubleHarm}},
     };
     return moods;
 }

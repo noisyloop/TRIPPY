@@ -1,0 +1,9 @@
+# The milk the moon forgot, pooled into an ocean. The edges are sky.
+# Fall off and you land back where you came in, softer.
+music_mood = melting_waltz
+transitions = east:cow_lounge
+npcs = 0:npc_jelly_oracle 1:npc_drowned_saxophone
+items = 0:jar_of_ocean
+trip = 0.8
+melt = 0.25
+chroma = 0.3

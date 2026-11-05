@@ -1,0 +1,8 @@
+# What the engine dreams about: itself, folded twelve ways.
+music_mood = playful_major
+transitions = west:engine_room
+npcs = 0:npc_gear_angel 1:ufo_loop
+items = 0:kaleidoscope_lens
+trip = 0.9
+kaleidoscope = 0.6
+chroma = 0.4

@@ -1,0 +1,8 @@
+# Trees that grow eyes instead of fruit. They are ripening. They are watching.
+music_mood = dream_lydian
+transitions = south:color_nine_garden
+npcs = 0:npc_eye_tree 1:npc_blink_twins 2:npc_eye_tree_sapling
+items = 0:unblinking_fig
+wander = npc_blink_twins
+trip = 0.9
+chroma = 0.35

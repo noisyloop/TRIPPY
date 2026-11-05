@@ -1,5 +1,6 @@
 # A hallway that is longer than it looks.
 music_mood = tense_chromatic
-transitions = west:bedroom east:garden
+transitions = west:bedroom east:garden south:static_motel
 npcs = 0:npc_dealer
-trip = 0.3
+trip = 0.35
+chroma = 0.15
