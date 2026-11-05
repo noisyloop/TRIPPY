@@ -1,0 +1,9 @@
+# A ballroom left out in the sun. The chandeliers are dripping. So is the floor.
+music_mood = melting_waltz
+transitions = west:tessellation_temple
+npcs = 0:npc_melting_clock 1:npc_wallpaper_dancer 2:npc_disco_eye
+items = 0:liquid_clock
+wander = npc_wallpaper_dancer
+trip = 1.0
+melt = 0.75
+kaleidoscope = 0.2

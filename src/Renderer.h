@@ -30,6 +30,8 @@ public:
     static constexpr int kViewH = kWindowH - kStatusBarH;  // playfield height
 
     Renderer();  // throws std::runtime_error on failure
+    // If set (>0) before construction, the window opens at exactly this size.
+    static inline int forcedW = 0, forcedH = 0;
 
     SDL_Renderer* sdl() const { return renderer_.get(); }
 
@@ -37,6 +39,10 @@ public:
     void handleWindowEvent(const SDL_Event& e);  // resize -> new logical width
     void toggleFullscreen();
     void setIcon(SDL_Surface* icon) { SDL_SetWindowIcon(window_.get(), icon); }
+
+    // The next present() also writes the frame to this PNG path.
+    void requestCapture(std::string path) { capturePath_ = std::move(path); }
+    bool captured() const { return captured_; }
 
     void clear(SDL_Color c);
     void present();
@@ -65,6 +71,8 @@ private:
     int camX_ = 0;
     int camY_ = 0;
     int width_ = kWindowW;
+    std::string capturePath_;
+    bool captured_ = false;
 
     void updateLogicalSize();
 };

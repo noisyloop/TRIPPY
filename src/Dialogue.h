@@ -32,6 +32,10 @@ struct DialogueTree {
     int altStart = -1;
 };
 
+// Inline text effects in dialogue: ~wavy~, *rainbow*, ^shaky^. The markers
+// are not shown. stripMarkup returns the visible text only.
+std::string stripMarkup(const std::string& text);
+
 // Greedy word wrap against a pixel width (shared with the boss duels).
 std::vector<std::string> wrapText(Assets& assets, const std::string& text, int maxWidth);
 
@@ -51,17 +55,21 @@ public:
         std::function<void()> onCharTyped;  // e.g. play a blip every few chars
     };
 
-    void start(const DialogueTree& tree, Effects effects);
+    // portrait = sprite name drawn, alive, beside the text (may be empty).
+    void start(const DialogueTree& tree, Effects effects, std::string portrait = "");
     bool active() const { return tree_ != nullptr; }
 
     void update(double dt, const Input& input);
-    void render(Renderer& r, Assets& assets) const;
+    // intensity 0..1 scales the wobbling text and portrait (0 in calm mode).
+    void render(Renderer& r, Assets& assets, double time, double intensity, double pulse) const;
 
 private:
     void enterNode(int index);
     const DialogueNode& node() const { return tree_->nodes[nodeIndex_]; }
 
     const DialogueTree* tree_ = nullptr;
+    std::string portrait_;
+    double age_ = 0;  // seconds since the node appeared (for entry effects)
     Effects effects_;
     int nodeIndex_ = 0;
     double shownChars_ = 0;

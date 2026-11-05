@@ -1,0 +1,8 @@
+# Fungal pews, a spore-light rose window. Four warps carry you like spores do.
+music_mood = spore_whole_tone
+transitions = north:color_nine_garden
+npcs = 0:npc_spore_bishop 1:npc_mycelium_choirboy
+items = 0:spore_of_yes
+wander = npc_mycelium_choirboy
+trip = 0.85
+melt = 0.35

@@ -1,0 +1,7 @@
+# Inside the Third Eye Marble. It is much bigger in here. You are much smaller.
+music_mood = dream_lydian
+transitions = east:tessellation_temple
+npcs = 0:npc_marble_self
+trip = 1.0
+kaleidoscope = 0.7
+chroma = 0.5

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace {
 constexpr int kH = Renderer::kViewH;
@@ -119,36 +120,151 @@ void TripFX::drawKaleidoscope(double time, double amount, int focusX, int focusY
     SDL_RenderGeometry(renderer_.sdl(), scene_.get(), v, kWedges * 3, nullptr, 0);
 }
 
-void TripFX::end(double time, double warp, double kaleido, int focusX, int focusY,
-                 SDL_Color clear) {
+void TripFX::end(double time, const TripParams& p, int focusX, int focusY, SDL_Color clear) {
     if (!active_) return;
     SDL_Renderer* r = renderer_.sdl();
     SDL_RenderSetScale(r, 1.0f, 1.0f);
     SDL_Texture* src = scene_.get();
+    SDL_Texture* spare = post_.get();
     const int kW = w_;
 
-    if (kaleido > 0.01) {
+    if (p.kaleido > 0.01) {
         SDL_SetRenderTarget(r, post_.get());
         SDL_RenderCopy(r, scene_.get(), nullptr, nullptr);
-        drawKaleidoscope(time, kaleido, focusX, focusY);
+        drawKaleidoscope(time, p.kaleido, focusX, focusY);
         src = post_.get();
+        spare = scene_.get();
+    }
+
+    // Melt: thin columns slide down and recover, like paint that is not dry.
+    if (p.melt > 0.01) {
+        SDL_SetRenderTarget(r, spare);
+        renderer_.clear(clear);
+        constexpr int kCol = 4;
+        for (int x = 0; x < kW; x += kCol) {
+            const double drip = std::max(0.0, std::sin(x * 0.047 + time * 0.7))
+                                * std::max(0.0, std::sin(x * 0.013 - time * 0.43));
+            const int dy = static_cast<int>(p.melt * 26.0 * drip);
+            SDL_Rect s{x, 0, kCol, kH}, d{x, dy, kCol, kH};
+            SDL_RenderCopy(r, src, &s, &d);
+        }
+        src = spare;
     }
 
     SDL_SetRenderTarget(r, nullptr);
-    renderer_.clear(clear);
-    if (warp < 0.01) {
-        SDL_Rect dst{0, 0, kW, kH};
-        SDL_RenderCopy(r, src, nullptr, &dst);
+
+    // Final composite: warp strips, scaled around the center by the beat
+    // swell, optionally three times (R, G, B) with offsets for the split.
+    const double scale = 1.0 + 0.035 * p.breathe;
+    const double cx = kW / 2.0, cy = kH / 2.0;
+    const int strip = p.warp < 0.01 ? kH : 4;
+    const double amp = p.warp * 14.0;
+    auto blit = [&](double extraX, double extraY) {
+        for (int y = 0; y < kH; y += strip) {
+            double off = strip == kH ? 0.0
+                : amp * (std::sin(y * 0.031 + time * 2.3) * 0.7 + std::sin(y * 0.087 - time * 1.1) * 0.3);
+            // Snap rows to whole pixels so strips never overlap (overlaps
+            // would double up in the additive RGB pass and show as seams).
+            const int y0 = static_cast<int>(std::floor(cy + (y + extraY - cy) * scale));
+            const int y1 = static_cast<int>(std::floor(cy + (y + strip + extraY - cy) * scale));
+            SDL_Rect s{0, y, kW, strip};
+            SDL_FRect d{static_cast<float>(cx + (off + extraX - cx) * scale), static_cast<float>(y0),
+                        static_cast<float>(kW * scale), static_cast<float>(y1 - y0)};
+            SDL_RenderCopyF(r, src, &s, &d);
+        }
+    };
+
+    if (p.chroma < 0.02) {
+        renderer_.clear(clear);
+        blit(0, 0);
         return;
     }
-    // Two sines of different speed so the ripple never quite repeats.
-    constexpr int kStrip = 4;
-    const double amp = warp * 14.0;
-    for (int y = 0; y < kH; y += kStrip) {
-        double off = amp * (std::sin(y * 0.031 + time * 2.3) * 0.7
-                            + std::sin(y * 0.087 - time * 1.1) * 0.3);
-        SDL_Rect s{0, y, kW, kStrip};
-        SDL_Rect d{static_cast<int>(std::lround(off)), y, kW, kStrip};
-        SDL_RenderCopy(r, src, &s, &d);
+    SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
+    SDL_RenderClear(r);
+    const double off = p.chroma * (3.0 + 3.0 * std::sin(time * 1.7));
+    const double wob = p.chroma * 2.0 * std::sin(time * 2.9);
+    SDL_SetTextureBlendMode(src, SDL_BLENDMODE_ADD);
+    SDL_SetTextureColorMod(src, 255, 0, 0);
+    blit(off, wob);
+    SDL_SetTextureColorMod(src, 0, 255, 0);
+    blit(0, 0);
+    SDL_SetTextureColorMod(src, 0, 0, 255);
+    blit(-off, -wob);
+    SDL_SetTextureColorMod(src, 255, 255, 255);
+    SDL_SetTextureBlendMode(src, SDL_BLENDMODE_BLEND);
+}
+
+void drawRing(SDL_Renderer* r, float cx, float cy, float r0, float r1, SDL_Color inner,
+              SDL_Color outer, int segments) {
+    std::vector<SDL_Vertex> v;
+    v.reserve(static_cast<size_t>(segments) * 6);
+    for (int i = 0; i < segments; ++i) {
+        const double a0 = i * 2 * kPi / segments, a1 = (i + 1) * 2 * kPi / segments;
+        auto at = [&](double rad, double a, SDL_Color c) {
+            return SDL_Vertex{{cx + static_cast<float>(rad * std::cos(a)), cy + static_cast<float>(rad * std::sin(a))}, c, {0, 0}};
+        };
+        v.push_back(at(r0, a0, inner)); v.push_back(at(r1, a0, outer)); v.push_back(at(r1, a1, outer));
+        v.push_back(at(r0, a0, inner)); v.push_back(at(r1, a1, outer)); v.push_back(at(r0, a1, inner));
+    }
+    SDL_RenderGeometry(r, nullptr, v.data(), static_cast<int>(v.size()), nullptr, 0);
+}
+
+void drawLivingSprite(SDL_Renderer* r, SDL_Texture* tex, float cx, float cy, float size,
+                      double time, double k, double pulse, unsigned seed) {
+    const double ph = (seed % 1000) / 1000.0 * 2 * kPi;
+    const double t = time + ph;
+    k = std::clamp(k, 0.0, 1.0);
+
+    if (k > 0.01) {
+        // Halo: two soft rings breathing out of phase, hue drifting.
+        const double hr = size * (0.55 + 0.08 * std::sin(t * 2.1) + 0.12 * pulse);
+        SDL_Color in = hsvColor(t * 60 + seed % 360, 0.8, 1.0, to8(0.35 * k));
+        SDL_Color out = hsvColor(t * 60 + seed % 360 + 90, 0.8, 1.0, 0);
+        drawRing(r, cx, cy, static_cast<float>(hr * 0.55), static_cast<float>(hr), in, out);
+        SDL_Color in2 = hsvColor(t * 60 + seed % 360 + 180, 0.8, 1.0, to8(0.25 * k));
+        drawRing(r, cx, cy, static_cast<float>(hr * 1.05), static_cast<float>(hr * 1.25 + size * 0.1 * std::sin(t * 1.3)),
+                 out, in2);
+        drawRing(r, cx, cy, static_cast<float>(hr * 1.25 + size * 0.1 * std::sin(t * 1.3)),
+                 static_cast<float>(hr * 1.45), in2, SDL_Color{in2.r, in2.g, in2.b, 0});
+    }
+
+    // Breathing: squash one way while stretching the other.
+    const double br = std::sin(t * 2.4) * 0.07 * k + 0.08 * pulse * k;
+    const float w = static_cast<float>(size * (1 + br)), h = static_cast<float>(size * (1 - br * 0.8));
+    const double angle = std::sin(t * 1.6) * 9.0 * k;
+
+    if (k > 0.01) {
+        // Echoes: the same being half a beat out of step, in other colors.
+        for (int e = 0; e < 2; ++e) {
+            const double ea = t * 1.3 + e * kPi;
+            const float ex = static_cast<float>(std::cos(ea) * size * 0.12 * k);
+            const float ey = static_cast<float>(std::sin(ea * 0.7) * size * 0.08 * k);
+            SDL_Color c = hsvColor(t * 90 + e * 140 + seed % 360, 0.9, 1.0);
+            SDL_SetTextureColorMod(tex, c.r, c.g, c.b);
+            SDL_SetTextureAlphaMod(tex, to8(0.38 * k));
+            SDL_FRect d{cx - w / 2 + ex, cy - h / 2 + ey, w, h};
+            SDL_RenderCopyExF(r, tex, nullptr, &d, -angle * 1.5, nullptr, SDL_FLIP_NONE);
+        }
+    }
+    // The being itself, faintly hue-tinted.
+    SDL_Color tint = lerpColor(SDL_Color{255, 255, 255, 255}, hsvColor(t * 40 + seed % 360, 0.5, 1.0), 0.45 * k);
+    SDL_SetTextureColorMod(tex, tint.r, tint.g, tint.b);
+    SDL_SetTextureAlphaMod(tex, 255);
+    SDL_FRect d{cx - w / 2, cy - h / 2, w, h};
+    SDL_RenderCopyExF(r, tex, nullptr, &d, angle, nullptr, SDL_FLIP_NONE);
+    SDL_SetTextureColorMod(tex, 255, 255, 255);
+
+    if (k > 0.01) {
+        // Little lights in orbit, each on its own tilted ellipse.
+        for (int i = 0; i < 4; ++i) {
+            const double a = t * (1.1 + i * 0.37) + i * kPi / 2;
+            const float ox = cx + static_cast<float>(std::cos(a) * size * (0.55 + 0.1 * i));
+            const float oy = cy + static_cast<float>(std::sin(a) * size * (0.25 + 0.06 * i));
+            const float s = std::max(1.5f, size / 14.0f);
+            SDL_Color c = hsvColor(t * 120 + i * 90, 0.6, 1.0, to8(0.9 * k));
+            SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
+            SDL_FRect dot{ox - s / 2, oy - s / 2, s, s};
+            SDL_RenderFillRectF(r, &dot);
+        }
     }
 }

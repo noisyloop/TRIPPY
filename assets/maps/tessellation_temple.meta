@@ -1,6 +1,6 @@
 # The Choir sings here. North (the Waiting Room) opens once they're finished.
 music_mood = dream_lydian
-transitions = north:waiting_room south:infinite_stair
+transitions = north:waiting_room south:infinite_stair east:melting_ballroom west:inside_the_marble
 npcs = 0:boss_choir 1:npc_tessellator 2:npc_mirror_you
 locks = north:beat_boss_choir
 items = 0:third_eye_marble
