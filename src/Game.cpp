@@ -67,10 +67,23 @@ Game::Game(const ShotRequest* shot)
         inventory_.setItems(data->inventory);
         flags_ = data->flags;
         enterRoom(data->room, nullptr, /*autosave=*/false);
-        if (!room_)  // saved room's map file was deleted; fall back
+        if (!room_)  // saved room's map file was deleted (or an unsafe name); fall back
             enterRoom("bedroom", nullptr, false);
-        else
-            player_.setPixelPosition(data->playerX, data->playerY);
+        else {
+            // The saved position is later cast to int (camera, tile lookup), so a shared or
+            // hand-edited save must not carry a non-finite or out-of-range coordinate: that cast
+            // is undefined behaviour for NaN/inf/huge values. Keep it inside the room, or spawn.
+            const double px = data->playerX, py = data->playerY;
+            if (std::isfinite(px) && std::isfinite(py)
+                && px >= 0 && py >= 0
+                && px <= room_->pixelWidth() && py <= room_->pixelHeight()) {
+                player_.setPixelPosition(px, py);
+            } else {
+                int tx, ty;
+                room_->defaultSpawn(tx, ty);
+                player_.setTilePosition(tx, ty);
+            }
+        }
     } else {
         enterRoom("bedroom", nullptr, /*autosave=*/false);
     }

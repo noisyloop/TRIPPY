@@ -1,6 +1,7 @@
 #include "RoomLoader.h"
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -49,7 +50,27 @@ bool parseDirection(const std::string& s, Direction& out) {
 
 }  // namespace
 
+namespace {
+
+// Room names become file paths under assets/maps, and they arrive from save files and from
+// transition/void_to values in .meta files (which can ship inside a downloaded room pack). Only
+// allow the characters real room names use, so a name like "../../secret" can't escape the maps
+// folder. Every built-in room matches this.
+bool safeRoomName(const std::string& name) {
+    if (name.empty() || name.size() > 64)
+        return false;
+    return std::all_of(name.begin(), name.end(), [](unsigned char c) {
+        return std::isalnum(c) || c == '_' || c == '-';
+    });
+}
+
+}  // namespace
+
 std::unique_ptr<Room> RoomLoader::load(const std::string& name) const {
+    if (!safeRoomName(name)) {
+        std::cerr << "[rooms] refusing unsafe room name '" << name << "'\n";
+        return nullptr;
+    }
     fs::path mapPath = fs::path(root_) / "maps" / (name + ".txt");
     std::ifstream mapFile(mapPath);
     if (!mapFile) {
